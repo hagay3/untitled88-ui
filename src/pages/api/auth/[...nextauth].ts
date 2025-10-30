@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import Auth0Provider from "next-auth/providers/auth0";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { JWT } from "next-auth/jwt";
 import * as process from "process";
 
@@ -27,7 +28,7 @@ declare global {
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    // Google Sign In via Auth0
+    // Auth0 Provider - for Google OAuth
     Auth0Provider({
       id: "auth0",
       name: "Google",
@@ -45,6 +46,84 @@ export const authOptions: NextAuthOptions = {
       httpOptions: {
         timeout: 100000,
       },
+    }),
+    // Credentials Provider - for custom email/password authentication
+    CredentialsProvider({
+      id: "credentials",
+      name: "Email and Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          console.error('Missing email or password in credentials');
+          return null;
+        }
+
+        // Debug environment variables
+        console.log('Auth0 Domain:', process.env.AUTH0_DOMAIN);
+        console.log('Auth0 Client ID:', process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID);
+        console.log('Auth0 Client Secret exists:', !!process.env.AUTH0_CLIENT_SECRET);
+
+        try {
+          // Authenticate with Auth0's Resource Owner Password Grant
+          const authResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              grant_type: 'http://auth0.com/oauth/grant-type/password-realm',
+              username: credentials.email,
+              password: credentials.password,
+              realm: 'Username-Password-Authentication',
+              client_id: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
+              client_secret: process.env.AUTH0_CLIENT_SECRET,
+              scope: 'openid email profile',
+            }),
+          });
+
+          if (!authResponse.ok) {
+            const errorData = await authResponse.json();
+            console.error('Auth0 authentication failed:', {
+              status: authResponse.status,
+              statusText: authResponse.statusText,
+              error: errorData
+            });
+            return null;
+          }
+
+          const tokenData = await authResponse.json();
+          
+          // Get user info from Auth0
+          const userResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`,
+            },
+          });
+
+          if (!userResponse.ok) {
+            console.error('Failed to get user info from Auth0');
+            return null;
+          }
+
+          const userData = await userResponse.json();
+
+          // Return user object that NextAuth expects
+          return {
+            id: userData.sub,
+            email: userData.email,
+            name: userData.name || userData.email,
+            image: userData.picture,
+            accessToken: tokenData.access_token,
+            idToken: tokenData.id_token,
+          };
+        } catch (error) {
+          console.error('Authentication error:', error);
+          return null;
+        }
+      }
     }),
   ],
   session: {
@@ -72,7 +151,18 @@ export const authOptions: NextAuthOptions = {
           token.name = user.name;
           token.email = user.email;
           token.picture = user.image;
-          token.provider = "google"; // Track provider
+          
+          // Determine provider based on the account provider
+          if (account.provider === "auth0") {
+            token.provider = "google";
+          } else if (account.provider === "credentials") {
+            token.provider = "email";
+            // For credentials provider, we get tokens directly from the user object
+            token.accessToken = user.accessToken || account.access_token;
+          } else {
+            token.provider = account.provider || "unknown";
+          }
+          
           token.loginProcessed = true; // Mark that we've processed the login
           
           // Try to get device info from the most recent entry in global storage

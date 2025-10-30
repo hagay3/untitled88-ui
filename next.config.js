@@ -15,6 +15,9 @@ const nextConfig = {
       'lh3.googleusercontent.com', // Google profile images
       'avatars.githubusercontent.com', // GitHub profile images
       'images.unsplash.com', // Unsplash images (if needed)
+      's.gravatar.com', // Gravatar profile images (Auth0 default)
+      'cdn.auth0.com', // Auth0 CDN for default avatars
+      'secure.gravatar.com', // Secure Gravatar images
     ],
   },
   
