@@ -63,7 +63,12 @@ export default function Login() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mb-4">
+            <div className="mb-4 flex flex-col items-center space-y-3">
+              <img 
+                src="/logo.png" 
+                alt="Untitled88 Logo" 
+                className="h-12 w-auto"
+              />
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 {AppConfig.site_name}
               </h1>
