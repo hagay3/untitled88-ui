@@ -15,6 +15,9 @@ module.exports = {
       '6xl': '4rem'
     },
     extend: {
+      fontFamily: {
+        'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: {
           '100': '#E6F6FE',

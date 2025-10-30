@@ -30,6 +30,12 @@ class MyDocument extends Document {
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           
+          {/* Google Fonts */}
+          <link 
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" 
+            rel="stylesheet" 
+          />
+          
           {/* DNS Prefetch for Performance */}
           <link rel="dns-prefetch" href="//fonts.googleapis.com" />
           <link rel="dns-prefetch" href="//www.google-analytics.com" />

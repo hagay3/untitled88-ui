@@ -76,9 +76,6 @@ export default function SEO({
       {/* Mobile Optimization */}
       <meta name="HandheldFriendly" content="true" />
       <meta name="MobileOptimized" content="width" />
-      
-      {/* Preload Critical Resources */}
-      <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
     </Head>
   )
 }

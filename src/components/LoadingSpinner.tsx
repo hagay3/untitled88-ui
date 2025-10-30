@@ -1,46 +1,12 @@
 import React from "react";
-import styled from "styled-components";
 
 const LoadingSpinner = () => {
   return (
-    <StyledWrapper>
-      <div className="loader" />
-    </StyledWrapper>
+    <div className="flex justify-center items-center">
+      <div className="loader w-9 h-9 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
+    </div>
   );
 };
-
-const StyledWrapper = styled.div`
-  .loader {
-  border: 4px solid rgba(0, 0, 0, .1);
-  border-left-color: transparent;
-  border-radius: 50%;
-}
-
-.loader {
-  border: 4px solid rgba(0, 0, 0, .1);
-  border-left-color: transparent;
-  width: 36px;
-  height: 36px;
-}
-
-.loader {
-  border: 4px solid rgba(0, 0, 0, .1);
-  border-left-color: transparent;
-  width: 36px;
-  height: 36px;
-  animation: spin89345 1s linear infinite;
-}
-
-@keyframes spin89345 {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-`;
 
 export default LoadingSpinner;
 
