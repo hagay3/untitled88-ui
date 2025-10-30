@@ -1,6 +1,7 @@
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -64,9 +65,11 @@ export default function Login() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mb-4 flex flex-col items-center space-y-3">
-              <img 
+              <Image 
                 src="/logo.png" 
                 alt="Untitled88 Logo" 
+                width={200}
+                height={60}
                 className="h-12 w-auto"
               />
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

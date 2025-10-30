@@ -1,6 +1,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -46,9 +47,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center space-x-3">
-              <img 
+              <Image 
                 src="/logo.png" 
                 alt="Untitled88 Logo" 
+                width={200}
+                height={60}
                 className="h-8 w-auto"
               />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -58,9 +61,11 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               {session ? (
                 <div className="flex items-center space-x-4">
-                  <img
+                  <Image
                     src={session.user?.image || "/default-avatar.png"}
                     alt="User"
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full"
                   />
                   <span className="text-sm font-medium text-gray-700">
@@ -169,7 +174,7 @@ export default function Home() {
                   onClick={handleSignIn}
                   className="text-lg px-8 py-6"
                 >
-                  Sign In with Google - It's Free!
+                  Sign In with Google - It&apos;s Free!
                 </Button>
               </CardContent>
             </Card>
