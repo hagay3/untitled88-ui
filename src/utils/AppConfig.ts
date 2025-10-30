@@ -6,7 +6,7 @@ export const AppConfig = {
   author: 'Untitled88 Team',
   url: 'https://untitled88.com',
   locale: 'en',
-  image: 'https://untitled88.com/og-image.png',
+  image: '/og-image.png',
   twitter: '@untitled88',
   type: 'website'
 }
