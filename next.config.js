@@ -1,18 +1,77 @@
-/* eslint-disable import/no-extraneous-dependencies */
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true'
-})
-
-module.exports = withBundleAnalyzer({
-  eslint: {
-    dirs: ['.']
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  
+  // SEO and Performance Optimizations
+  compress: true,
+  
+  // Image Optimization
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  poweredByHeader: false,
-  trailingSlash: true,
-  basePath: '',
-  // The starter code load resources from `public` folder with `router.basePath` in React components.
-  // So, the source code is "basePath-ready".
-  // You can remove `basePath` if you don't need it.
-  reactStrictMode: true
-})
+  
+  // Security Headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()'
+          }
+        ]
+      }
+    ]
+  },
+  
+  // Redirects for SEO
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
+  
+  // PWA Support
+  experimental: {
+    optimizeCss: true,
+  },
+  
+  // Bundle Analysis
+  webpack: (config, { dev, isServer }) => {
+    // Optimize bundle size
+    if (!dev && !isServer) {
+      config.optimization.splitChunks.cacheGroups = {
+        ...config.optimization.splitChunks.cacheGroups,
+        commons: {
+          name: 'commons',
+          chunks: 'all',
+          minChunks: 2,
+        },
+      }
+    }
+    
+    return config
+  },
+}
 
+module.exports = nextConfig

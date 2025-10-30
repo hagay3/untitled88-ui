@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import SEO from "@/components/SEO";
 import { AppConfig } from "@/utils/AppConfig";
 
 export default function Home() {
@@ -32,7 +33,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <>
+      <SEO 
+        title="AI-Powered Email Designer & Marketing Platform"
+        description="Create stunning email campaigns with AI. Generate beautiful HTML templates, preview across devices, and integrate with Brevo, Mailchimp & Klaviyo. Start free today!"
+        keywords="email marketing, AI email designer, email templates, HTML emails, email campaigns, email builder, responsive emails, Brevo integration, Mailchimp integration, Klaviyo integration"
+        url="/"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* Header/Navbar */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -172,7 +180,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
 
