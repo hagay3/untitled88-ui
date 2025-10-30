@@ -53,7 +53,7 @@ const nextConfig = {
   
   // PWA Support
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled due to dependency conflicts
   },
   
   // Bundle Analysis
