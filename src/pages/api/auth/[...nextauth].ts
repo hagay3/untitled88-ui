@@ -263,6 +263,10 @@ const callApiServerSide = async (
       device_type: deviceInfo?.device_type || "desktop",
       device_name: deviceInfo?.device_name || "Unknown Device",
       ip_address: deviceInfo?.ip_address || "unknown",
+      user_agent: deviceInfo?.user_agent || "",
+      operating_system_version: deviceInfo?.operating_system_version || "",
+      country: deviceInfo?.country || "",
+      city: deviceInfo?.city || "",
     };
     
     const response = await fetch(`${baseUrl}/api/${endpoint}`, {
@@ -288,18 +292,22 @@ const callApiServerSide = async (
 const handleLogin = async (
   user_id: string,
   accessToken: string,
-  deviceInfo: any = null
+  deviceInfo: any = null,
+  req?: any
 ) => {
   
   try {
-
+    // Add user agent if available from request
+    if (req && deviceInfo) {
+      deviceInfo.user_agent = req.headers?.['user-agent'] || '';
+    }
     
     // Call backend API to log the user login using server-side function
     await callApiServerSide("user_login", user_id, accessToken, deviceInfo);
 
     
   } catch (error) {
-    //
+    console.error('Error in handleLogin:', error);
   }
 };
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SEO from "@/components/SEO";
+import { prepareDeviceInfoForLogin } from "@/utils/deviceInfo";
 
 export default function Login() {
   const { data: session, status } = useSession();
@@ -36,14 +37,35 @@ export default function Login() {
       // Clean up the URL
       router.replace('/login', undefined, { shallow: true });
     }
+
+    // Prepare device info for login when component mounts
+    const prepareDeviceInfo = async () => {
+      try {
+        await prepareDeviceInfoForLogin();
+      } catch (error) {
+        console.error('Failed to prepare device info:', error);
+      }
+    };
+
+    prepareDeviceInfo();
   }, [session, router]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    await signIn("auth0", { 
-      callbackUrl: "/",
-      connection: "google-oauth2"
-    });
+    
+    try {
+      // Prepare device info before authentication
+      await prepareDeviceInfoForLogin();
+      
+      await signIn("auth0", { 
+        callbackUrl: "/",
+        connection: "google-oauth2"
+      });
+    } catch (error) {
+      console.error('Error during Google sign-in:', error);
+      setError('Sign-in failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handleEmailAuth = async (e?: React.FormEvent) => {
@@ -79,6 +101,9 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      // Prepare device info before authentication
+      await prepareDeviceInfoForLogin();
+      
       if (isSignUp) {
         // Custom sign-up process
         const signUpResponse = await fetch('/api/auth/signup', {
