@@ -145,9 +145,11 @@ export default function PreviewPanel({
                 )}
                 
                 <div className="h-full overflow-auto">
-                  <div
-                    dangerouslySetInnerHTML={{ __html: email.html }}
-                    className={viewMode === 'mobile' ? 'text-sm' : ''}
+                  <iframe
+                    srcDoc={email.html}
+                    className={`w-full h-full border-0 ${viewMode === 'mobile' ? 'text-sm' : ''}`}
+                    title="Email Preview"
+                    sandbox="allow-same-origin"
                   />
                 </div>
               </div>

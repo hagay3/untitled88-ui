@@ -9,6 +9,10 @@ declare module "next-auth/jwt" {
   interface JWT {
     loginProcessed?: boolean;
     provider?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    accessTokenExpires?: number;
+    error?: string;
   }
 }
 
@@ -26,6 +30,77 @@ declare global {
   }> | undefined;
 }
 
+/**
+ * Refresh an Auth0 access token using the refresh token
+ */
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  console.log('🔄 [NextAuth] Starting token refresh...');
+  console.log('🔄 [NextAuth] Token info:', {
+    hasRefreshToken: !!token.refreshToken,
+    refreshTokenPrefix: token.refreshToken ? `${token.refreshToken.substring(0, 20)}...` : 'none',
+    accessTokenExpires: token.accessTokenExpires,
+    isExpired: token.accessTokenExpires ? Date.now() > token.accessTokenExpires : 'unknown'
+  });
+  
+  try {
+    const response = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        client_id: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
+        client_secret: process.env.AUTH0_CLIENT_SECRET,
+        refresh_token: token.refreshToken,
+      }),
+    });
+
+    console.log('🔄 [NextAuth] Auth0 refresh response:', {
+      status: response.status,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ [NextAuth] Token refresh failed:', {
+        status: response.status,
+        error: errorData
+      });
+      throw new Error(`Token refresh failed: ${response.status}`);
+    }
+
+    const refreshedTokens = await response.json();
+    
+    console.log('✅ [NextAuth] Token refresh successful:', {
+      hasIdToken: !!refreshedTokens.id_token,
+      hasAccessToken: !!refreshedTokens.access_token,
+      hasRefreshToken: !!refreshedTokens.refresh_token,
+      expiresIn: refreshedTokens.expires_in,
+      newTokenPrefix: (refreshedTokens.id_token || refreshedTokens.access_token) ? 
+        `${(refreshedTokens.id_token || refreshedTokens.access_token).substring(0, 20)}...` : 'none'
+    });
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.id_token || refreshedTokens.access_token,
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken, // Fall back to old refresh token
+      accessTokenExpires: Date.now() + (refreshedTokens.expires_in * 1000),
+      error: undefined,
+    };
+  } catch (error) {
+    console.error('❌ [NextAuth] Token refresh error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorType: error instanceof Error ? error.constructor.name : typeof error
+    });
+    
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // Auth0 Provider - for Google OAuth
@@ -39,7 +114,7 @@ export const authOptions: NextAuthOptions = {
         params: {
           prompt: "login",
           connection: "google-oauth2",
-          scope: "openid email profile",
+          scope: "openid email profile offline_access",
           // audience: process.env.AUTH0_AUDIENCE, // Optional - only needed for backend API calls
         },
       },
@@ -80,7 +155,7 @@ export const authOptions: NextAuthOptions = {
               realm: 'Username-Password-Authentication',
               client_id: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
               client_secret: process.env.AUTH0_CLIENT_SECRET,
-              scope: 'openid email profile',
+              scope: 'openid email profile offline_access',
             }),
           });
 
@@ -117,7 +192,9 @@ export const authOptions: NextAuthOptions = {
             name: userData.name || userData.email,
             image: userData.picture,
             accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
             idToken: tokenData.id_token,
+            expiresAt: tokenData.expires_in ? Date.now() + (tokenData.expires_in * 1000) : undefined,
           };
         } catch (error) {
           console.error('Authentication error:', error);
@@ -130,6 +207,9 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: Number(process.env.NEXT_PUBLIC_USER_SESSION_TTL_MINUTES) * 60,
   },
+  jwt: {
+    maxAge: Number(process.env.NEXT_PUBLIC_USER_SESSION_TTL_MINUTES) * 60,
+  },
   callbacks: {
     async jwt({
       token,
@@ -140,17 +220,35 @@ export const authOptions: NextAuthOptions = {
       user: any;
       account: any;
     }) {
-   
+      console.log('🔑 [NextAuth] JWT callback triggered:', {
+        hasAccount: !!account,
+        hasUser: !!user,
+        hasToken: !!token,
+        tokenId: token.id,
+        accountProvider: account?.provider,
+        isFirstLogin: !!(account && user)
+      });
 
       try {
         // First-time login or when user is authenticated
         if (account && user) {
-          
+          console.log('🔑 [NextAuth] Processing first-time login:', {
+            userId: user.id,
+            userEmail: user.email,
+            accountProvider: account.provider,
+            hasIdToken: !!account.id_token,
+            hasRefreshToken: !!account.refresh_token,
+            hasUserRefreshToken: !!(user as any).refreshToken
+          });
           token.accessToken = account.id_token; // Use account.id_token as the accessToken
+          token.refreshToken = account.refresh_token || (user as any).refreshToken;
           token.id = user.id;
           token.name = user.name;
           token.email = user.email;
           token.picture = user.image;
+          token.accessTokenExpires = account.expires_at ? account.expires_at * 1000 : 
+                                     (user as any).expiresAt || 
+                                     Date.now() + (60 * 60 * 1000); // 1 hour default
           
           // Determine provider based on the account provider
           if (account.provider === "auth0") {
@@ -164,6 +262,15 @@ export const authOptions: NextAuthOptions = {
           }
           
           token.loginProcessed = true; // Mark that we've processed the login
+          
+          console.log('🔑 [NextAuth] Login tokens set:', {
+            hasAccessToken: !!token.accessToken,
+            hasRefreshToken: !!token.refreshToken,
+            accessTokenPrefix: token.accessToken ? `${token.accessToken.substring(0, 20)}...` : 'none',
+            refreshTokenPrefix: token.refreshToken ? `${token.refreshToken.substring(0, 20)}...` : 'none',
+            provider: token.provider,
+            accessTokenExpires: token.accessTokenExpires
+          });
           
           // Try to get device info from the most recent entry in global storage
           let deviceInfo = {
@@ -204,38 +311,97 @@ export const authOptions: NextAuthOptions = {
           // Session ID is already included in the Auth0 token
           await handleLogin(user.id, account.id_token, deviceInfo);
         } else if (token.id && token.email && !token.loginProcessed) {
-
-          
+          console.log('🔑 [NextAuth] Processing delayed login for existing token');
           await handleLogin(token.id as string, token.accessToken as string, null);
           token.loginProcessed = true;
         } else {
-
+          // Check if token needs refresh
+          console.log('🔑 [NextAuth] Checking if token needs refresh:', {
+            hasAccessTokenExpires: !!token.accessTokenExpires,
+            accessTokenExpires: token.accessTokenExpires,
+            currentTime: Date.now(),
+            isExpired: token.accessTokenExpires ? Date.now() >= token.accessTokenExpires : 'unknown',
+            hasRefreshToken: !!token.refreshToken
+          });
+          
+          if (token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
+            console.log('✅ [NextAuth] Token is still valid, no refresh needed');
+            return token;
+          }
+          
+          if (!token.refreshToken) {
+            console.error('❌ [NextAuth] No refresh token available');
+            token.error = "RefreshAccessTokenError";
+            return token;
+          }
+          
+          console.log('🔄 [NextAuth] Token expired, attempting refresh...');
+          try {
+            const refreshedTokens = await refreshAccessToken(token);
+            console.log('✅ [NextAuth] Token refresh completed successfully');
+            return refreshedTokens;
+          } catch (error) {
+            console.error('❌ [NextAuth] Token refresh failed in JWT callback:', {
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+            token.error = "RefreshAccessTokenError";
+            return token;
+          }
         }
       } catch (error) {
+        console.error('❌ [NextAuth] JWT callback error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorType: error instanceof Error ? error.constructor.name : typeof error
+        });
       }
 
+      console.log('🔑 [NextAuth] JWT callback completed, returning token:', {
+        hasId: !!token.id,
+        hasAccessToken: !!token.accessToken,
+        hasRefreshToken: !!token.refreshToken,
+        hasError: !!token.error,
+        error: token.error
+      });
+      
       return token;
     },
     async session({ session, token }: { session: any; token: JWT }) {
-
+      console.log('📝 [NextAuth] Session callback triggered:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        hasToken: !!token,
+        tokenId: token.id,
+        tokenError: token.error
+      });
       
       try {
         if (session.user) {
           session.user.id = token.id;
           session.user.accessToken = token.accessToken; // Attach accessToken to session
+          session.user.refreshToken = token.refreshToken; // Attach refreshToken to session
           session.user.name = token.name;
           session.user.email = token.email;
           session.user.image = token.picture;
           session.user.provider = token.provider; // Attach provider to session
-   
-        } else {
-
+          session.user.error = token.error; // Attach any token errors
+          
+          console.log('📝 [NextAuth] Session user populated:', {
+            userId: session.user.id,
+            userEmail: session.user.email,
+            hasAccessToken: !!session.user.accessToken,
+            hasRefreshToken: !!session.user.refreshToken,
+            provider: session.user.provider,
+            hasError: !!session.user.error,
+            error: session.user.error
+          });
         }
       } catch (error) {
-   
+        console.error('❌ [NextAuth] Session callback error:', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
       
-
+      console.log('📝 [NextAuth] Session callback completed');
       return session;
     },
   },

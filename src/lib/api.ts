@@ -8,56 +8,79 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {
+  console.log('🔑 [API] Getting auth headers...');
   const session = await getSession();
   
+  console.log('🔑 [API] Session status:', {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    hasAccessToken: !!session?.user?.accessToken,
+    hasUserId: !!session?.user?.id,
+    userId: session?.user?.id,
+    tokenPrefix: session?.user?.accessToken ? `${session.user.accessToken.substring(0, 20)}...` : 'none'
+  });
+  
   if (!session?.user?.accessToken || !session?.user?.id) {
+    console.error('❌ [API] No valid session found:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      hasAccessToken: !!session?.user?.accessToken,
+      hasUserId: !!session?.user?.id
+    });
     throw new Error('No valid session found. Please log in again.');
   }
 
-  return {
+  const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${session.user.accessToken}`,
     'X-User-Id': session.user.id
   };
+  
+  console.log('🔑 [API] Headers prepared:', {
+    hasContentType: !!headers['Content-Type'],
+    hasAuth: !!headers['Authorization'],
+    hasUserId: !!headers['X-User-Id'],
+    userId: headers['X-User-Id'],
+    authPrefix: headers['Authorization'] ? `${headers['Authorization'].substring(0, 20)}...` : 'none'
+  });
+  
+  return headers;
 };
 
 // Generic API request function
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   try {
-    console.log('🔍 API Request Debug:', {
-      endpoint,
+    console.log('🌐 [API] Making request to:', endpoint, {
       method: options.method || 'GET',
-      url: `${API_BASE_URL}/api${endpoint}`,
-      hasBody: !!options.body,
-      bodyLength: options.body ? options.body.toString().length : 0
+      hasBody: !!options.body
     });
 
     const headers = await getAuthHeaders();
-    console.log('🔑 Auth Headers:', {
-      hasAuthorization: !!headers.Authorization,
-      authorizationPrefix: headers.Authorization?.substring(0, 20) + '...',
-      hasUserId: !!headers['X-User-Id'],
-      userId: headers['X-User-Id'],
-      contentType: headers['Content-Type']
+    
+    const finalHeaders = {
+      ...headers,
+      ...options.headers,
+    };
+    
+    console.log('🌐 [API] Final headers for request:', {
+      hasContentType: !!finalHeaders['Content-Type'],
+      hasAuth: !!finalHeaders['Authorization'],
+      hasUserId: !!finalHeaders['X-User-Id'],
+      userId: finalHeaders['X-User-Id'],
+      authPrefix: finalHeaders['Authorization'] ? `${finalHeaders['Authorization'].substring(0, 20)}...` : 'none',
+      endpoint: `${API_BASE_URL}/api${endpoint}`
     });
-
-    if (options.body) {
-      console.log('📤 Request Body:', options.body);
-    }
     
     const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       ...options,
-      headers: {
-        ...headers,
-        ...options.headers,
-      },
+      headers: finalHeaders,
     });
 
-    console.log('📥 Response Status:', {
+    console.log('📥 [API] Response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
+      endpoint: endpoint
     });
 
     if (!response.ok) {
@@ -65,7 +88,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       let errorData;
       try {
         const responseText = await response.text();
-        console.log('❌ Error Response Body:', responseText);
+        
         
         try {
           errorData = JSON.parse(responseText);
@@ -73,7 +96,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
           errorData = { error: responseText };
         }
       } catch (readError) {
-        console.error('❌ Failed to read error response:', readError);
+        
         errorData = { error: 'Failed to read error response' };
       }
 
@@ -92,25 +115,20 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     const responseData = await response.json();
-    console.log('✅ Success Response:', {
+    console.log('✅ [API] Request successful:', {
+      endpoint: endpoint,
       hasData: !!responseData,
-      success: responseData.success,
       dataKeys: responseData ? Object.keys(responseData) : []
     });
 
     return responseData;
   } catch (error) {
-    console.error('🚨 API Request Error:', {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-      endpoint,
-      method: options.method || 'GET'
+    console.error('❌ [API] Request failed:', {
+      endpoint: endpoint,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorType: error instanceof Error ? error.constructor.name : typeof error
     });
 
-    // If it's an authentication error, we might want to redirect to login
-    if (error instanceof Error && error.message.includes('No valid session found')) {
-      console.error('Authentication error:', error.message);
-    }
     throw error;
   }
 };
@@ -298,6 +316,14 @@ export const aiAPI = {
 
   getEmailByMessageId: async (messageId: number) => {
     return apiRequest(`/ai/email/${messageId}`);
+  },
+
+  getDailyUsage: async () => {
+    return apiRequest('/ai/daily-usage');
+  },
+
+  getChatHistory: async (limit: number = 50) => {
+    return apiRequest(`/ai/chat-history?limit=${limit}`);
   },
 };
 
