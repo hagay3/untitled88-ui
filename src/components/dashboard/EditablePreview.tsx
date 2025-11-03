@@ -46,8 +46,22 @@ export default function EditablePreview({
 
   // Parse email HTML into blocks
   useEffect(() => {
+    console.log('📧 Email parsing effect triggered:', {
+      hasEmail: !!email,
+      hasHtml: !!email?.html,
+      htmlLength: email?.html?.length || 0
+    });
+
     if (email?.html) {
+      console.log('🔍 Parsing email HTML...');
       const parsed = emailParser.current.parseEmailToBlocks(email.html);
+      console.log('📊 Parsed email result:', {
+        totalBlocks: parsed.blocks.length,
+        blockTypes: parsed.blocks.map(b => b.type),
+        blockIds: parsed.blocks.map(b => b.id),
+        hasBlocks: parsed.metadata.hasBlocks
+      });
+
       setParsedEmail(parsed);
       
       // Initialize editable content
@@ -55,11 +69,15 @@ export default function EditablePreview({
       parsed.blocks.forEach((block) => {
         content[block.id] = block.content;
       });
+      console.log('📝 Initialized editable content:', content);
       setEditableContent(content);
       
       // Reset selection when email changes
+      console.log('🔄 Resetting selection state');
       setSelectedBlock(null);
       setEditingImageBlock(null);
+    } else {
+      console.log('❌ No email HTML to parse');
     }
   }, [email?.html]);
 
@@ -88,10 +106,11 @@ export default function EditablePreview({
       if (element) {
         const rect = element.getBoundingClientRect();
         const iframeRect = iframe.getBoundingClientRect();
+        const iframeScrollTop = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop;
         
         positions[block.id] = {
           x: rect.left + iframeRect.left,
-          y: rect.top + iframeRect.top,
+          y: rect.top + iframeRect.top - iframeScrollTop,
           width: rect.width,
           height: rect.height
         };
@@ -101,40 +120,143 @@ export default function EditablePreview({
     setBlockPositions(positions);
   }, [parsedEmail]);
 
-  const setupBlockListeners = useCallback(() => {
-    if (!iframeRef.current || !parsedEmail) return;
+  const setupBlockListeners = useCallback((overrideSelectedBlock?: string | null) => {
+    const currentSelectedBlock = overrideSelectedBlock !== undefined ? overrideSelectedBlock : selectedBlock;
+    
+    console.log('🔧 setupBlockListeners called');
+    console.log('📊 Current state:', {
+      hasIframe: !!iframeRef.current,
+      hasParsedEmail: !!parsedEmail,
+      selectedBlock: currentSelectedBlock,
+      overrideProvided: overrideSelectedBlock !== undefined,
+      totalBlocks: parsedEmail?.blocks?.length || 0
+    });
+
+    if (!iframeRef.current || !parsedEmail) {
+      console.log('❌ Missing iframe or parsedEmail, returning early');
+      return;
+    }
 
     const iframe = iframeRef.current;
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
     
-    if (!iframeDoc) return;
+    if (!iframeDoc) {
+      console.log('❌ No iframe document found');
+      return;
+    }
 
-    parsedEmail.blocks.forEach((block) => {
+    console.log('✅ Iframe document found');
+
+    // Remove any existing selection overlays
+    const existingOverlays = iframeDoc.querySelectorAll('.untitled88-selection-overlay');
+    console.log(`🧹 Removing ${existingOverlays.length} existing overlays`);
+    existingOverlays.forEach(overlay => overlay.remove());
+
+    // Add scroll listener to update toolbar positions
+    const handleScroll = () => {
+      calculateBlockPositions();
+    };
+    
+    iframeDoc.addEventListener('scroll', handleScroll);
+    
+    // Cleanup function to remove scroll listener
+    const cleanup = () => {
+      iframeDoc.removeEventListener('scroll', handleScroll);
+    };
+
+    console.log(`🔍 Processing ${parsedEmail.blocks.length} blocks`);
+
+    parsedEmail.blocks.forEach((block, index) => {
+      console.log(`📦 Processing block ${index + 1}:`, {
+        id: block.id,
+        type: block.type,
+        isSelected: currentSelectedBlock === block.id
+      });
+
       const element = iframeDoc.querySelector(`[data-block-id="${block.id}"]`) as HTMLElement;
-      if (element) {
-        // Add click listener
-        element.onclick = (e) => {
+      
+      if (!element) {
+        console.log(`❌ Element not found for block ${block.id}`);
+        return;
+      }
+
+      console.log(`✅ Element found for block ${block.id}:`, {
+        tagName: element.tagName,
+        className: element.className,
+        hasDataBlockId: element.hasAttribute('data-block-id'),
+        hasDataBlockType: element.hasAttribute('data-block-type')
+      });
+
+      // Add click listener
+      element.onclick = (e) => {
+        console.log(`🖱️ Block clicked: ${block.id}`);
+        e.preventDefault();
+        e.stopPropagation();
+        handleBlockSelect(block.id);
+      };
+
+      // Add double-click listener for images
+      if (block.type === 'image') {
+        element.ondblclick = (e) => {
+          console.log(`🖱️🖱️ Image double-clicked: ${block.id}`);
           e.preventDefault();
           e.stopPropagation();
-          handleBlockSelect(block.id);
+          handleImageEdit(block);
         };
+      }
 
-        // Add double-click listener for images
-        if (block.type === 'image') {
-          element.ondblclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleImageEdit(block);
-          };
+      // Handle selection styling
+      if (currentSelectedBlock === block.id) {
+        console.log(`🎯 Creating selection overlay for selected block: ${block.id}`);
+        
+        // Create selection overlay that attaches directly to the element
+        const overlay = iframeDoc.createElement('div');
+        overlay.className = 'untitled88-selection-overlay';
+        overlay.style.cssText = `
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          border: 2px solid #3B82F6;
+          border-radius: 4px;
+          background-color: rgba(59, 130, 246, 0.05);
+          pointer-events: none;
+          z-index: 1000;
+        `;
+
+        console.log('📐 Overlay created with styles:', overlay.style.cssText);
+
+        // Make the element position relative if it's not already positioned
+        const computedStyle = iframeDoc.defaultView?.getComputedStyle(element);
+        const currentPosition = computedStyle?.position || 'static';
+        
+        console.log(`📍 Element current position: ${currentPosition}`);
+        
+        if (currentPosition === 'static') {
+          element.style.position = 'relative';
+          console.log('✅ Set element position to relative');
         }
 
-        // Make text elements contenteditable when selected
+        // Append overlay to the element
+        element.appendChild(overlay);
+        console.log('✅ Overlay appended to element');
+        
+        // Verify overlay was added
+        const addedOverlay = element.querySelector('.untitled88-selection-overlay');
+        console.log('🔍 Overlay verification:', {
+          overlayExists: !!addedOverlay,
+          overlayParent: addedOverlay?.parentElement?.tagName,
+          overlayStyles: addedOverlay ? (addedOverlay as HTMLElement).style.cssText : 'N/A'
+        });
+        
+        // Make text elements contenteditable
         if (block.type === 'text' || block.type === 'hero' || block.type === 'header' || block.type === 'footer') {
           const textElement = element.querySelector('h1, h2, h3, p, td, span') as HTMLElement;
-          if (textElement && selectedBlock === block.id) {
+          if (textElement) {
+            console.log(`📝 Making text element editable for block ${block.id}`);
             textElement.contentEditable = 'true';
-            textElement.style.outline = '2px solid #3B82F6';
-            textElement.style.outlineOffset = '2px';
+            textElement.style.cursor = 'text';
             
             // Listen for content changes
             textElement.oninput = () => {
@@ -143,18 +265,53 @@ export default function EditablePreview({
                 [block.id]: textElement.innerText
               }));
             };
+          } else {
+            console.log(`⚠️ No text element found for editable block ${block.id}`);
+          }
+        }
+      } else {
+        // Remove any existing overlays from this element
+        const existingOverlay = element.querySelector('.untitled88-selection-overlay');
+        if (existingOverlay) {
+          console.log(`🧹 Removing overlay from unselected block ${block.id}`);
+          existingOverlay.remove();
+        }
+        
+        // Remove contenteditable
+        if (block.type === 'text' || block.type === 'hero' || block.type === 'header' || block.type === 'footer') {
+          const textElement = element.querySelector('h1, h2, h3, p, td, span') as HTMLElement;
+          if (textElement) {
+            textElement.contentEditable = 'false';
+            textElement.style.cursor = '';
           }
         }
       }
     });
-  }, [parsedEmail, selectedBlock]);
+
+    console.log('✅ setupBlockListeners completed');
+
+    // Return cleanup function (though it won't be used in this useCallback)
+    return cleanup;
+  }, [parsedEmail, selectedBlock, calculateBlockPositions]);
 
   const handleBlockSelect = (blockId: string) => {
+    console.log('🎯 handleBlockSelect called:', {
+      clickedBlockId: blockId,
+      currentSelectedBlock: selectedBlock,
+      willToggle: selectedBlock === blockId
+    });
+
     const newSelection = selectedBlock === blockId ? null : blockId;
+    console.log('🔄 Setting new selection:', newSelection);
     setSelectedBlock(newSelection);
     
-    // Recalculate positions when selection changes
-    setTimeout(calculateBlockPositions, 10);
+    // Recalculate positions when selection changes (for toolbars)
+    setTimeout(() => {
+      console.log('⏰ Timeout triggered - recalculating positions and re-setting up listeners');
+      calculateBlockPositions();
+      // Re-setup listeners to apply new selection styling - pass the new selection directly
+      setupBlockListeners(newSelection);
+    }, 10);
   };
 
   const handleImageEdit = (block: EmailBlock) => {
@@ -358,10 +515,54 @@ export default function EditablePreview({
     };
   };
 
+  // Debug function to inspect iframe content
+  const debugIframeContent = () => {
+    if (!iframeRef.current) {
+      console.log('❌ No iframe ref');
+      return;
+    }
+
+    const iframe = iframeRef.current;
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    
+    if (!iframeDoc) {
+      console.log('❌ No iframe document');
+      return;
+    }
+
+    console.log('🔍 Iframe content debug:', {
+      documentReady: iframeDoc.readyState,
+      bodyExists: !!iframeDoc.body,
+      elementsWithBlockId: iframeDoc.querySelectorAll('[data-block-id]').length,
+      allElements: iframeDoc.querySelectorAll('*').length,
+      bodyInnerHTML: iframeDoc.body?.innerHTML?.substring(0, 200) + '...'
+    });
+
+    // List all elements with data-block-id
+    const blockElements = iframeDoc.querySelectorAll('[data-block-id]');
+    console.log('📦 Block elements found:', Array.from(blockElements).map(el => ({
+      id: el.getAttribute('data-block-id'),
+      type: el.getAttribute('data-block-type'),
+      tagName: el.tagName,
+      hasOverlay: !!el.querySelector('.untitled88-selection-overlay')
+    })));
+  };
+
   const handleIframeLoad = () => {
+    console.log('🖼️ Iframe loaded - setting up positions and listeners');
+    
+    // Debug iframe content immediately
+    setTimeout(debugIframeContent, 50);
+    
     // Small delay to ensure content is fully rendered
-    setTimeout(calculateBlockPositions, 100);
-    setTimeout(setupBlockListeners, 150);
+    setTimeout(() => {
+      console.log('⏰ Calculating block positions after iframe load');
+      calculateBlockPositions();
+    }, 100);
+    setTimeout(() => {
+      console.log('⏰ Setting up block listeners after iframe load');
+      setupBlockListeners();
+    }, 150);
   };
 
   if (!email) {
@@ -418,6 +619,14 @@ export default function EditablePreview({
               </svg>
               <span className="font-medium">Edit Mode</span>
             </div>
+
+            {/* Debug Button */}
+            <button
+              onClick={debugIframeContent}
+              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded border hover:bg-gray-200"
+            >
+              🐛 Debug
+            </button>
           </div>
 
           <div className="flex items-center space-x-3">
@@ -487,9 +696,10 @@ export default function EditablePreview({
             />
           </div>
           
-          {/* Inline Toolbars - Rendered outside iframe but positioned absolutely */}
+          
+          {/* Inline Toolbars - Rendered outside iframe with proper positioning */}
           {parsedEmail && selectedBlock && (
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 100 }}>
+            <>
               {parsedEmail.blocks.map((block) => {
                 if (block.id !== selectedBlock) return null;
                 
@@ -498,37 +708,62 @@ export default function EditablePreview({
                 
                 const blockIndex = parsedEmail.blocks.findIndex((b) => b.id === block.id);
                 
+                // Calculate toolbar position (above the element, attached to it)
+                const toolbarPosition = {
+                  x: position.x,
+                  y: Math.max(10, position.y - 50), // Ensure it doesn't go off-screen
+                  width: position.width
+                };
+                
                 // Show appropriate toolbar based on block type
                 if (block.type === 'image') {
                   return (
-                    <InlineImageToolbar
-                      key={block.id}
-                      block={block}
-                      position={position}
-                      onDelete={() => handleDelete(block.id)}
-                      onEdit={() => handleImageEdit(block)}
-                    />
+                    <div
+                      key={`toolbar-${block.id}`}
+                      className="absolute pointer-events-auto"
+                      style={{
+                        left: toolbarPosition.x,
+                        top: toolbarPosition.y,
+                        zIndex: 1000
+                      }}
+                    >
+                      <InlineImageToolbar
+                        block={block}
+                        position={toolbarPosition}
+                        onDelete={() => handleDelete(block.id)}
+                        onEdit={() => handleImageEdit(block)}
+                      />
+                    </div>
                   );
                 } else if (block.type === 'text' || block.type === 'hero' || block.type === 'header' || block.type === 'footer') {
                   return (
-                    <InlineTextToolbar
-                      key={block.id}
-                      block={block}
-                      position={position}
-                      onMoveUp={() => handleMoveUp(block.id)}
-                      onMoveDown={() => handleMoveDown(block.id)}
-                      onDelete={() => handleDelete(block.id)}
-                      onStyleChange={(styles: Record<string, string>) => handleStyleChange(block.id, styles)}
-                      onContentChange={(content: string) => handleContentChange(block.id, content)}
-                      totalBlocks={parsedEmail.blocks.length}
-                      blockIndex={blockIndex}
-                    />
+                    <div
+                      key={`toolbar-${block.id}`}
+                      className="absolute pointer-events-auto"
+                      style={{
+                        left: toolbarPosition.x,
+                        top: toolbarPosition.y,
+                        zIndex: 1000
+                      }}
+                    >
+                      <InlineTextToolbar
+                        block={block}
+                        position={toolbarPosition}
+                        onMoveUp={() => handleMoveUp(block.id)}
+                        onMoveDown={() => handleMoveDown(block.id)}
+                        onDelete={() => handleDelete(block.id)}
+                        onStyleChange={(styles: Record<string, string>) => handleStyleChange(block.id, styles)}
+                        onContentChange={(content: string) => handleContentChange(block.id, content)}
+                        totalBlocks={parsedEmail.blocks.length}
+                        blockIndex={blockIndex}
+                      />
+                    </div>
                   );
                 }
                 
                 return null;
               })}
-            </div>
+            </>
           )}
         </div>
       </div>

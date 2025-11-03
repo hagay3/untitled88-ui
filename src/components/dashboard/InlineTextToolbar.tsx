@@ -96,17 +96,15 @@ export default function InlineTextToolbar({
     }
   };
 
-  // Calculate toolbar position (above the element)
+  // Toolbar styling (positioning handled by parent)
   const toolbarStyle = {
-    left: `${position.x}px`,
-    top: `${position.y - 60}px`, // 60px above the element
     minWidth: '400px'
   };
 
   return (
     <div
       ref={toolbarRef}
-      className="absolute z-50 bg-white rounded-lg shadow-2xl border border-gray-200 p-2 flex items-center space-x-1"
+      className="relative bg-white rounded-lg shadow-2xl border border-gray-200 p-2 flex items-center space-x-1"
       style={toolbarStyle}
       onClick={(e) => e.stopPropagation()}
     >

@@ -542,7 +542,7 @@ export interface Message {
   message_type: string;
   message_content: string;
   message_role: string;
-  message_timestamp: string;
+  creation_timestamp: string;
   tokens_used: number;
   processing_time_ms?: number;
   message_metadata: any;
