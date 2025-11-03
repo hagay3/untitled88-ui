@@ -47,7 +47,7 @@ export default function TemplateGallery({ onClose, onSelectTemplate }: TemplateG
             <li>Early access to new features</li>
           </ul>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="#" style="background: #3B82F6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px;">Get Started</a>
+            <a href="javascript:void(0)" style="background: #3B82F6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px;">Get Started</a>
           </div>
         </div>
       `
@@ -79,7 +79,7 @@ export default function TemplateGallery({ onClose, onSelectTemplate }: TemplateG
               </div>
             </div>
             <div style="text-align: center; margin-top: 30px;">
-              <a href="#" style="background: #10B981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px;">Learn More</a>
+              <a href="javascript:void(0)" style="background: #10B981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px;">Learn More</a>
             </div>
           </div>
         </div>
@@ -103,12 +103,12 @@ export default function TemplateGallery({ onClose, onSelectTemplate }: TemplateG
             <article style="margin-bottom: 30px;">
               <h2 style="color: #333; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">This Week's Highlights</h2>
               <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
-              <a href="#" style="color: #3B82F6; text-decoration: none;">Read more →</a>
+              <a href="javascript:void(0)" style="color: #3B82F6; text-decoration: none;">Read more →</a>
             </article>
             <article style="margin-bottom: 30px;">
               <h2 style="color: #333; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">Industry News</h2>
               <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip.</p>
-              <a href="#" style="color: #3B82F6; text-decoration: none;">Read more →</a>
+              <a href="javascript:void(0)" style="color: #3B82F6; text-decoration: none;">Read more →</a>
             </article>
           </div>
         </div>

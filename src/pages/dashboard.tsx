@@ -30,7 +30,7 @@ export default function Dashboard() {
       // Clear the stored prompt
       sessionStorage.removeItem('emailPrompt');
     }
-  }, [session, status, router]);
+  }, [session, status]); // Removed router from dependencies to prevent re-renders
 
   // Loading state
   if (status === "loading") {

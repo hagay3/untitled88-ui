@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { FaCircleUp } from "react-icons/fa6";
 
 interface ChatPanelProps {
   credits: number;
@@ -15,8 +16,6 @@ interface ChatPanelProps {
   initialPrompt?: string;
   onEmailClick?: (emailData: any) => void;
   conversationHistory?: any[];
-  conversations?: any[];
-  currentConversationId?: number | null;
 }
 
 interface ChatMessage {
@@ -48,15 +47,10 @@ export default function ChatPanel({
   generationProgress,
   initialPrompt,
   onEmailClick,
-  conversationHistory = [],
-  conversations = [],
-  currentConversationId = null
+  conversationHistory = []
 }: ChatPanelProps) {
   const [message, setMessage] = useState('');
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
-  const [activeConversation, setActiveConversation] = useState<string | null>(
-    currentConversationId ? currentConversationId.toString() : null
-  );
   const [timeLeft, setTimeLeft] = useState('');
   const [currentProgressStep, setCurrentProgressStep] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -177,17 +171,6 @@ export default function ChatPanel({
     }
   };
 
-  const formatTime = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
 
   const generateNextSteps = (prompt: string): string => {
     // Analyze the prompt for key indicators
@@ -243,7 +226,6 @@ export default function ChatPanel({
   // Load conversation history from props
   useEffect(() => {
     if (conversationHistory && conversationHistory.length > 0) {
-      console.log('📨 Loading conversation history from props:', conversationHistory);
       
       // Transform conversation history to ChatMessage format
       const transformedMessages: ChatMessage[] = conversationHistory.map((msg: any, index: number) => ({
@@ -258,9 +240,7 @@ export default function ChatPanel({
       transformedMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
       
       setCurrentMessages(transformedMessages);
-      console.log('✅ Loaded conversation history to chat panel');
     } else {
-      console.log('📭 No conversation history provided');
       setCurrentMessages([]);
     }
   }, [conversationHistory]);
@@ -290,41 +270,8 @@ export default function ChatPanel({
         )}
       </div>
 
-      {/* Conversation History */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="p-3 bg-white border-b border-gray-200">
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Conversations</h3>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {conversations.length > 0 ? (
-              conversations.map((conv: any) => (
-                <button
-                  key={conv.conversation_id}
-                  onClick={() => setActiveConversation(conv.conversation_id.toString())}
-                  className={`w-full text-left p-2 rounded-lg text-xs transition-colors ${
-                    activeConversation === conv.conversation_id.toString()
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="font-medium text-gray-900 truncate">
-                    {conv.conversation_title || 'Untitled Conversation'}
-                  </div>
-                  <div className="text-gray-500 flex justify-between mt-1">
-                    <span>{conv.message_count || 0} messages</span>
-                    <span>{formatTime(new Date(conv.updated_timestamp || conv.creation_timestamp))}</span>
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="text-center text-gray-400 py-4">
-                <p className="text-xs">No conversations yet</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Current Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Current Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {currentMessages.length === 0 && !isGenerating && (
             <div className="text-center text-gray-500 mt-8">
               <div className="w-12 h-12 mx-auto mb-3 text-gray-300">
@@ -436,7 +383,6 @@ export default function ChatPanel({
 
           <div ref={messagesEndRef} />
         </div>
-      </div>
 
       {/* Message Input */}
       <div className="p-4 bg-white border-t border-gray-200">
@@ -456,9 +402,7 @@ export default function ChatPanel({
             className="btn-primary self-end"
             size="sm"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+            <FaCircleUp className="w-4 h-4" />
           </Button>
         </div>
         <div className="mt-2 text-xs text-gray-500">

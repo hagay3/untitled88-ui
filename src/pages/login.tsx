@@ -24,9 +24,11 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
-    // Redirect to dashboard if already logged in
+    // Don't redirect if already logged in - let them stay on current page
+    // They'll naturally navigate away when ready
     if (session) {
-      router.push("/");
+      // User is already logged in, no redirect needed
+      return;
     }
     
     // Check for password reset completion message
@@ -58,7 +60,7 @@ export default function Login() {
       await prepareDeviceInfoForLogin();
       
       await signIn("auth0", { 
-        callbackUrl: "/",
+        callbackUrl: "/dashboard",
         connection: "google-oauth2"
       });
     } catch (error) {
@@ -140,7 +142,7 @@ export default function Login() {
           console.error("Sign in after signup error:", result.error);
           setError("Account created but sign in failed. Please try signing in manually.");
         } else if (result?.ok) {
-          router.push("/");
+          router.push("/dashboard");
         }
       } else {
         // Regular sign-in process using credentials provider
@@ -156,7 +158,7 @@ export default function Login() {
         } else if (result?.ok) {
           setSuccess("Signed in successfully! Redirecting...");
           await new Promise(resolve => setTimeout(resolve, 500));
-          router.push("/");
+          router.push("/dashboard");
         }
       }
     } catch (error) {
@@ -237,16 +239,61 @@ export default function Login() {
     );
   }
 
+  // If already logged in, show a message instead of the login form
   if (session) {
     return (
       <>
         <SEO 
-          title="Redirecting..."
-          description="Redirecting to dashboard"
+          title="Already Signed In"
+          description="You are already signed in to Untitled88"
           noindex={true}
         />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-          <LoadingSpinner />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <Card className="w-full max-w-md shadow-lg border-0">
+            <CardHeader className="text-center">
+              <div className="mb-8 flex flex-col items-center space-y-6">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <Image 
+                    src="/logo-untitled88.png" 
+                    alt="Untitled88 Logo" 
+                    width={160}
+                    height={160}
+                    className="w-40 h-40"
+                  />
+                  <Image 
+                    src="/logo-untitled88-text-only.png" 
+                    alt="Untitled88" 
+                    width={180}
+                    height={40}
+                    className="h-8 w-auto"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+                    You&apos;re Already Signed In
+                  </h1>
+                  <p className="text-gray-600">
+                    Welcome back, {session.user?.name || session.user?.email}!
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 px-8 pb-8">
+              <Button 
+                onClick={() => router.push("/dashboard")}
+                className="w-full bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 text-white py-4 text-base font-medium rounded-xl"
+              >
+                Go to Dashboard
+              </Button>
+              <Button 
+                onClick={() => router.push("/")}
+                variant="outline"
+                className="w-full py-4 text-base font-medium rounded-xl"
+              >
+                Go to Home
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </>
     );
@@ -263,21 +310,27 @@ export default function Login() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md shadow-lg border-0">
           <CardHeader className="text-center">
-            <div className="mb-8 flex flex-col items-center space-y-6">
-              <div className="w-24 h-24 bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400 rounded-3xl flex items-center justify-center shadow-lg">
+            <div className="mb-8 flex flex-col items-center gap-0">
+              <div className="flex flex-col items-center justify-center gap-0">
                 <Image 
-                  src="/logo.png" 
+                  src="/logo-untitled88.png" 
                   alt="Untitled88 Logo" 
-                  width={48}
-                  height={48}
-                  className="w-12 h-12 filter brightness-0 invert"
+                  width={160}
+                  height={160}
+                  className="w-40 h-40"
+                />
+                <Image 
+                  src="/logo-untitled88-text-only.png" 
+                  alt="Untitled88" 
+                  width={1180}
+                  height={500}
+                  className="h-10 w-auto"
                 />
               </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-                  A sacred place for your work-in-progress emails
-                </h1>
-              </div>
+              <br/>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2 mt-0">
+                 The design studio for emails that convert
+              </h1>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 px-8 pb-8">

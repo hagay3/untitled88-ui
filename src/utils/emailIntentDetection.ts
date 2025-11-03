@@ -72,7 +72,6 @@ export function analyzeEmailIntent(
   });
   
   // Check for specific changes
-  let hasSpecificChange = false;
   specificChanges.forEach(change => {
     if (prompt.includes(`${change}`) && (
       prompt.includes(`change ${change}`) ||
@@ -81,7 +80,6 @@ export function analyzeEmailIntent(
       prompt.includes(`fix ${change}`)
     )) {
       updateScore += 4;
-      hasSpecificChange = true;
       reasoning.push(`Requests specific change to: "${change}"`);
     }
   });
@@ -105,7 +103,6 @@ export function analyzeEmailIntent(
   }
   
   // Pattern analysis
-  const isQuestion = prompt.includes('?');
   const hasComparison = prompt.includes('instead') || prompt.includes('rather') || prompt.includes('vs');
   const hasNegation = prompt.includes("don't") || prompt.includes("not") || prompt.includes("remove");
   

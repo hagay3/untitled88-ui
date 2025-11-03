@@ -12,8 +12,10 @@ import DashboardNavbar from './DashboardNavbar';
 import TemplateGallery from './TemplateGallery';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDialog, { useErrorDialog } from '@/components/ui/ErrorDialog';
+import ExportDialog from '@/components/ui/ExportDialog';
 import { apiClient } from '@/utils/apiClient';
 import { analyzeEmailIntent, generateClarificationPrompt } from '@/utils/emailIntentDetection';
+import { downloadHtmlFile, exportEmailWithMetadata } from '@/utils/exportUtils';
 
 interface DashboardLayoutProps {
   initialPrompt?: string;
@@ -28,7 +30,9 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   const [currentEmail, setCurrentEmail] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
+  const [generationType, setGenerationType] = useState<'create' | 'update'>('create');
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [dailyUsage, setDailyUsage] = useState({
     daily_limit: 10,
@@ -73,7 +77,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     
     // Load page reload data and automatically show last email
     loadPageReloadData();
-  }, [session, status, router]);
+  }, []); // Removed router from dependencies to prevent re-renders
 
   // State for conversation management
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
@@ -81,50 +85,49 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   // State for current email context
   const [currentEmailHtml, setCurrentEmailHtml] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
-  const [conversations, setConversations] = useState<any[]>([]);
   const [isLoadingPageData, setIsLoadingPageData] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
   
   // Load page reload data and automatically show last email
   const loadPageReloadData = async () => {
     setIsLoadingPageData(true);
+    setLoadingStatus('Loading your workspace...');
     try {
-      console.log('🔄 Loading page reload data...');
       
-      // Load conversations and chat history separately (more reliable)
-      const [conversationsResponse, chatHistoryResponse] = await Promise.all([
+      setLoadingStatus('Fetching your conversations and emails...');
+      
+      // Test API connectivity first
+      
+      // Load conversations, chat history, and recent emails in parallel
+      const [conversationsResponse, chatHistoryResponse, recentEmailsResponse] = await Promise.all([
         apiClient.fetchWithAuth('ai/conversations?limit=5'),
-        apiClient.fetchWithAuth('ai/chat-history?limit=50')
+        apiClient.fetchWithAuth('ai/chat-history?limit=50'),
+        apiClient.fetchWithAuth('ai/recent-emails?limit=1') // Get the most recent email
       ]);
       
-      console.log('📊 Loading conversations and chat history...');
       
       // Process conversations
       if (conversationsResponse.ok) {
         const conversationsData = await conversationsResponse.json();
-        console.log('📋 Conversations data:', conversationsData);
         
         if (conversationsData.success && conversationsData.conversations) {
-          setConversations(conversationsData.conversations);
-          console.log('📋 Set conversations:', conversationsData.conversations.length);
           
           // Set the first conversation as current if available
           if (conversationsData.conversations.length > 0) {
             setCurrentConversationId(conversationsData.conversations[0].conversation_id);
-            console.log('🔗 Set current conversation:', conversationsData.conversations[0].conversation_id);
           }
         }
       }
       
-      // Process chat history (this was working before)
+      // Process chat history for conversation display
+      let processedChatHistory: any[] = [];
       if (chatHistoryResponse.ok) {
         const chatData = await chatHistoryResponse.json();
-        console.log('📨 Chat history data:', chatData);
         
         if (chatData.success && chatData.messages && chatData.messages.length > 0) {
-          console.log('📨 Processing chat history messages...');
           
           // Transform chat history messages to conversation history format
-          const history = chatData.messages.map((msg: any) => ({
+          processedChatHistory = chatData.messages.map((msg: any) => ({
             type: msg.type,
             content: msg.content,
             timestamp: new Date(msg.timestamp),
@@ -132,39 +135,85 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
             intent: 'create' // Default intent
           }));
           
-          console.log('📨 Built conversation history from chat:', {
-            historyLength: history.length,
-            emailMessages: history.filter((msg: any) => msg.type === 'email').length,
-            textMessages: history.filter((msg: any) => msg.type !== 'email').length
-          });
+      
           
-          setConversationHistory(history);
-          
-          // Find the most recent email in chat history
-          const emailMessages = history.filter((msg: any) => msg.type === 'email' && msg.emailData);
-          
-          if (emailMessages.length > 0) {
-            const latestEmailMessage = emailMessages[emailMessages.length - 1]; // Last email
-            console.log('📧 Found latest email in chat history:', latestEmailMessage);
-            
-            if (latestEmailMessage.emailData) {
-              setCurrentEmail(latestEmailMessage.emailData);
-              setCurrentEmailHtml(latestEmailMessage.emailData.html);
-              console.log('✅ Automatically loaded last email from chat history to preview');
-            }
-          } else {
-            console.log('📭 No email messages found in chat history');
-          }
+          setConversationHistory(processedChatHistory);
         } else {
-          console.log('📭 No messages found in chat history');
           setConversationHistory([]);
         }
       } else {
         console.error('❌ Failed to load chat history:', chatHistoryResponse.status);
         setConversationHistory([]);
       }
+
+      // Primary: Try to load the most recent email from dedicated API
+      let lastEmailLoaded = false;
+      setLoadingStatus('Looking for your last generated email...');
+      
+      if (recentEmailsResponse.ok) {
+        const recentEmailsData = await recentEmailsResponse.json();
+      
+        if (recentEmailsData.success && recentEmailsData.emails && recentEmailsData.emails.length > 0) {
+          const latestEmail = recentEmailsData.emails[0];
+          
+          setLoadingStatus('Loading your last email to preview...');
+          
+          // Transform the email data to match expected format
+          const emailData = {
+            subject: latestEmail.email_subject,
+            html: latestEmail.email_html,
+            preheader: latestEmail.preheader_text,
+            features: latestEmail.key_features || [],
+            designNotes: latestEmail.design_notes,
+            colorPalette: latestEmail.color_palette || [],
+            fontsUsed: latestEmail.fonts_used || [],
+            accessibilityFeatures: latestEmail.accessibility_features || [],
+            compatibilityNotes: latestEmail.compatibility_notes,
+            estimatedSize: latestEmail.estimated_size_kb,
+            mobileOptimized: latestEmail.mobile_optimized
+          };
+          
+          // Only load if we have valid HTML content
+         
+          
+          if (emailData.html) {
+            setCurrentEmail(emailData);
+            setCurrentEmailHtml(emailData.html);
+            lastEmailLoaded = true;
+            setLoadingStatus('Email loaded successfully!');
+          } else {
+          }
+        } else {
+          setLoadingStatus('Checking conversation history...');
+        }
+      } else {
+        console.warn('⚠️ Failed to load recent emails:', recentEmailsResponse.status);
+        setLoadingStatus('Checking conversation history...');
+      }
+
+      // Fallback: If no email loaded from recent-emails API, try chat history
+      if (!lastEmailLoaded && processedChatHistory.length > 0) {
+
+        // Find the most recent email in chat history
+        const emailMessages = processedChatHistory.filter((msg: any) => msg.type === 'email' && msg.emailData);
+        
+        if (emailMessages.length > 0) {
+          const latestEmailMessage = emailMessages[emailMessages.length - 1]; // Last email
+    
+          
+          if (latestEmailMessage.emailData && latestEmailMessage.emailData.html) {
+            setCurrentEmail(latestEmailMessage.emailData);
+            setCurrentEmailHtml(latestEmailMessage.emailData.html);
+            lastEmailLoaded = true;
+          }
+        }
+      }
+
+      if (!lastEmailLoaded) {
+        setLoadingStatus('Ready to create your first email!');
+      }
+      
     } catch (error) {
-      console.error('❌ Error loading page reload data:', error);
     } finally {
       setIsLoadingPageData(false);
     }
@@ -176,11 +225,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     setGenerationProgress('Analyzing your request...');
     
     try {
-      console.log('🔐 Checking authentication status...');
-      console.log('Session:', session);
-      console.log('User ID:', session?.user?.id);
-      console.log('Access Token present:', !!session?.user?.accessToken);
-      
+
       // 🎯 Smart Intent Detection
       const intentAnalysis = analyzeEmailIntent(
         prompt, 
@@ -188,28 +233,21 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         conversationHistory
       );
       
-      console.log('🧠 Intent Analysis:', intentAnalysis);
       
       // Handle unclear intent with high confidence threshold
       if (intentAnalysis.intent === 'unclear' || intentAnalysis.confidence < 0.7) {
         const clarification = generateClarificationPrompt(prompt, !!currentEmailHtml);
         setGenerationProgress(clarification);
         
-        // For now, we'll default to create if no existing email, update if there is one
-        // In the future, you could show a dialog here for user confirmation
-        const defaultIntent = currentEmailHtml ? 'update' : 'create';
-        console.log(`🤔 Intent unclear (confidence: ${intentAnalysis.confidence}), defaulting to: ${defaultIntent}`);
-        
-        // You could add a confirmation dialog here:
-        // const userChoice = await showIntentConfirmationDialog(clarification);
-        // emailType = userChoice;
+    
+
       }
       
       const emailType = intentAnalysis.intent === 'unclear' 
         ? (currentEmailHtml ? 'update' : 'create')
         : intentAnalysis.intent;
         
-      console.log(`📧 Email generation mode: ${emailType}`);
+      setGenerationType(emailType);
       
       // Import API function
       // Use apiClient for API calls with automatic token refresh
@@ -218,7 +256,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       let conversationId = currentConversationId;
       if (!conversationId) {
         setGenerationProgress('Creating conversation...');
-        console.log('🔄 Creating new conversation with title:', `Email: ${prompt.substring(0, 50)}...`);
         
         const conversationResponse = await apiClient.fetchWithAuth('ai/conversations', {
           method: 'POST',
@@ -229,14 +266,11 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         
         const conversationData = await conversationResponse.json();
         
-        console.log('📞 Conversation API Response:', conversationData);
         
         if (conversationResponse.ok && conversationData.success && conversationData.data) {
           conversationId = conversationData.data.conversation_id;
           setCurrentConversationId(conversationId);
-          console.log('✅ Conversation created successfully with ID:', conversationId);
         } else {
-          console.error('❌ Failed to create conversation:', conversationData);
           throw new Error(`Failed to create conversation: ${conversationData.error || conversationData.message || 'Unknown error'}`);
         }
       }
@@ -244,7 +278,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       // Step 2: Add user message to conversation
       if (conversationId) {
         setGenerationProgress('Gathering Email Requirements...');
-        console.log('💬 Adding message to conversation ID:', conversationId);
         
         const messageResponse = await apiClient.fetchWithAuth(`ai/conversations/${conversationId}/messages`, {
           method: 'POST',
@@ -260,13 +293,11 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         });
         
         const messageData = await messageResponse.json();
-        console.log('📞 Add Message API Response:', messageData);
         
         if (!messageResponse.ok || !messageData.success) {
           console.warn('⚠️ Failed to add message to conversation:', messageData);
-        } else {
-          console.log('✅ Message added successfully');
-        }
+        } 
+
       }
       
       // Step 3: Generate email (this will also store the AI response)
@@ -348,6 +379,45 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     }
   };
 
+  // Handle email export
+  const handleExportEmail = async () => {
+    if (!currentEmail || !currentEmail.html) {
+      showError('No email to export. Please generate an email first.');
+      return;
+    }
+
+    // Show export dialog
+    setShowExportDialog(true);
+  };
+
+  // Handle export with options
+  const handleExportWithOptions = async (options: any) => {
+    try {
+      if (options.format === 'html-with-metadata') {
+        // Export both HTML and metadata
+        downloadHtmlFile(currentEmail.html, {
+          filename: options.filename,
+          includeStyles: options.includeStyles,
+          format: 'html'
+        });
+        
+        // Also export metadata
+        exportEmailWithMetadata(currentEmail);
+      } else {
+        // Export HTML only
+        downloadHtmlFile(currentEmail.html, {
+          filename: options.filename,
+          includeStyles: options.includeStyles,
+          format: 'html'
+        });
+      }
+
+    } catch (error: any) {
+      console.error('❌ Export failed:', error);
+      showError(error.message || 'Failed to export email. Please try again.');
+    }
+  };
+
   // Handle template selection
   const handleTemplateSelect = (template: any) => {
     setCurrentEmail(template);
@@ -374,7 +444,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         user={session.user}
         onTemplateGallery={() => setShowTemplateGallery(true)}
         onSave={() => console.log('Save email')}
-        onExport={() => console.log('Export email')}
+        onExport={handleExportEmail}
         onShare={() => console.log('Share email')}
         currentEmail={currentEmail}
       />
@@ -391,7 +461,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Loading your workspace...</h3>
-              <p className="text-gray-500">Getting your conversations and emails ready</p>
+              <p className="text-gray-500 mb-1">{loadingStatus}</p>
             </div>
           </div>
         ) : (
@@ -405,10 +475,12 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                 isGenerating={isGenerating}
                 generationProgress={generationProgress}
                 initialPrompt={initialPrompt}
-                onEmailClick={(emailData) => setCurrentEmail(emailData)}
+                onEmailClick={(emailData) => {
+                  setCurrentEmail(emailData);
+                  setCurrentEmailHtml(emailData.html);
+                 
+                }}
                 conversationHistory={conversationHistory}
-                conversations={conversations}
-                currentConversationId={currentConversationId}
               />
             </div>
 
@@ -420,6 +492,17 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                 onViewModeChange={setViewMode}
                 isGenerating={isGenerating}
                 generationProgress={generationProgress}
+                generationType={generationType}
+                onEmailUpdate={(updatedHtml) => {
+                  // Update the current email with new HTML
+                  if (currentEmail) {
+                    setCurrentEmail({
+                      ...currentEmail,
+                      html: updatedHtml
+                    });
+                    setCurrentEmailHtml(updatedHtml);
+                  }
+                }}
               />
             </div>
           </>
@@ -433,6 +516,14 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           onSelectTemplate={handleTemplateSelect}
         />
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExportWithOptions}
+        email={currentEmail}
+      />
 
       {/* Error Dialog */}
       <ErrorDialog

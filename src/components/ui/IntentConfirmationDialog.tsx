@@ -39,7 +39,7 @@ export default function IntentConfirmationDialog({
           
           <div className="bg-gray-50 rounded-lg p-3 mb-4">
             <p className="text-sm text-gray-700 italic">
-              "{prompt}"
+              &quot;{prompt}&quot;
             </p>
           </div>
         </div>

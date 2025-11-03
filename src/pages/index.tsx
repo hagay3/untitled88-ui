@@ -94,13 +94,20 @@ export default function Home() {
         <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-0">
                 <Image 
                   src="/logo.png" 
                   alt="Untitled88 Logo" 
                   width={120}
                   height={40}
-                  className="h-8 w-auto"
+                  className="h-12 w-auto"
+                />
+                <Image 
+                  src="/logo-untitled88-text-only.png" 
+                  alt="Untitled88" 
+                  width={1000}
+                  height={400}
+                  className="h-8 w-auto -ml-2"
                 />
               </div>
               <div className="flex items-center space-x-4">

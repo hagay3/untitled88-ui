@@ -124,23 +124,14 @@ class SecureApiClient {
   ): Promise<Response> {
     const maxRetries = 3;
     
-    console.log(`🌐 [ApiClient] Making request to: ${endpoint} (attempt ${retryCount + 1}/${maxRetries + 1})`);
     
     try {
       // Get current session for access token
-      console.log('🔑 [ApiClient] Getting session...');
       const session = await getSession();
       const accessToken = session?.user?.accessToken;
       const userId = session?.user?.id;
       
-      console.log('🔑 [ApiClient] Session status:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        hasAccessToken: !!accessToken,
-        hasUserId: !!userId,
-        userId: userId,
-        tokenPrefix: accessToken ? `${accessToken.substring(0, 20)}...` : 'none'
-      });
+
 
       // Prepare headers
       const headers = {
@@ -150,14 +141,7 @@ class SecureApiClient {
         ...options.headers,
       };
       
-      console.log('📤 [ApiClient] Request headers:', {
-        hasAuth: !!headers.Authorization,
-        hasUserId: !!headers['X-User-Id'],
-        hasContentType: !!headers['Content-Type'],
-        userId: headers['X-User-Id'],
-        authPrefix: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'none',
-        endpoint: `${this.baseUrl}/api/${endpoint}`
-      });
+   
 
       // Make the API request
       const response = await fetch(`${this.baseUrl}/api/${endpoint}`, {
@@ -165,16 +149,10 @@ class SecureApiClient {
         headers,
       });
       
-      console.log('📥 [ApiClient] Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        endpoint: endpoint
-      });
+  
 
       // Handle 401 Unauthorized - attempt session refresh
       if (response.status === 401 && retryCount < maxRetries) {
-        console.log(`🔄 [ApiClient] Got 401, attempting token refresh (retry ${retryCount + 1}/${maxRetries})`);
         
         try {
           // Ensure only one refresh attempt at a time
@@ -182,33 +160,23 @@ class SecureApiClient {
             console.log('🔄 [ApiClient] Starting new refresh session');
             this.isRefreshing = true;
             this.refreshPromise = this.refreshSession();
-          } else {
-            console.log('⏳ [ApiClient] Waiting for existing refresh to complete...');
           }
 
           // Wait for refresh to complete
-          console.log('⏳ [ApiClient] Waiting for refresh to complete...');
           await this.refreshPromise;
           this.isRefreshing = false;
           this.refreshPromise = null;
-          console.log('✅ [ApiClient] Refresh completed, resetting flags');
 
           // Retry the original request with fresh token
-          console.log('🔁 [ApiClient] Retrying original request with fresh token');
           return this.fetchWithAuth(endpoint, options, retryCount + 1);
         } catch (refreshError: any) {
-          console.error('❌ [ApiClient] Refresh failed:', {
-            error: refreshError?.message || 'Unknown error',
-            retryCount: retryCount,
-            endpoint: endpoint
-          });
+       
           
           this.isRefreshing = false;
           this.refreshPromise = null;
           
           // If refresh failed due to expired token, don't retry - the user will be redirected to login
           if (refreshError?.message?.includes('Token expired')) {
-            console.log('🚪 [ApiClient] Token expired, stopping retries');
             throw refreshError;
           }
           
@@ -219,18 +187,12 @@ class SecureApiClient {
 
       // If refresh failed or max retries exceeded, logout user
       if (response.status === 401 && retryCount >= maxRetries) {
-        console.log(`❌ [ApiClient] Max retries exceeded (${maxRetries}), showing sign out dialog`);
         await showSignOutDialog("/login");
       }
 
       return response;
     } catch (error: any) {
-      console.error('❌ [ApiClient] Request error:', {
-        endpoint: endpoint,
-        retryCount: retryCount,
-        error: error?.message || 'Unknown error',
-        errorType: error?.constructor?.name || typeof error
-      });
+      
       
       // Handle network errors or other issues
       throw error;
@@ -243,22 +205,12 @@ class SecureApiClient {
    */
   private async refreshSession(): Promise<void> {
     try {
-      console.log('🔄 [ApiClient] Starting session refresh...');
       
       // Get current session first to compare
-      console.log('🔄 [ApiClient] Getting current session before refresh...');
       const currentSession = await getSession();
-      
-      console.log('🔄 [ApiClient] Current session:', {
-        hasSession: !!currentSession,
-        hasUser: !!currentSession?.user,
-        hasAccessToken: !!currentSession?.user?.accessToken,
-        userId: currentSession?.user?.id,
-        currentTokenPrefix: currentSession?.user?.accessToken ? `${currentSession.user.accessToken.substring(0, 20)}...` : 'none'
-      });
+
       
       // Call our custom refresh endpoint
-      console.log('🔄 [ApiClient] Triggering session refresh...');
       const sessionResponse = await fetch('/api/auth/refresh', {
         method: 'POST',
         credentials: 'include',
@@ -266,22 +218,11 @@ class SecureApiClient {
           'Content-Type': 'application/json',
         }
       });
-      
-      console.log('🔄 [ApiClient] Session refresh response:', {
-        status: sessionResponse.status,
-        ok: sessionResponse.ok
-      });
-      
+    
       if (sessionResponse.ok) {
         const refreshData = await sessionResponse.json();
         
-        console.log('🔄 [ApiClient] Session data from refresh:', {
-          hasUser: !!refreshData.user,
-          hasAccessToken: !!refreshData.user?.accessToken,
-          userId: refreshData.user?.id,
-          newTokenPrefix: refreshData.user?.accessToken ? `${refreshData.user.accessToken.substring(0, 20)}...` : 'none',
-          requiresReauth: refreshData.requiresReauth
-        });
+    
         
         if (refreshData.requiresReauth) {
           console.log('🚪 [ApiClient] Refresh indicates re-authentication required');
@@ -291,11 +232,7 @@ class SecureApiClient {
       } else {
         const errorData = await sessionResponse.json();
         
-        console.error('❌ [ApiClient] Session refresh failed:', {
-          status: sessionResponse.status,
-          errorData: errorData
-        });
-        
+     
         if (errorData.requiresReauth) {
           console.log('🚪 [ApiClient] Error response indicates re-authentication required');
           await showSignOutDialog("/login");
@@ -306,18 +243,9 @@ class SecureApiClient {
       }
       
       // Get the refreshed session
-      console.log('🔄 [ApiClient] Getting new session after refresh...');
       const newSession = await getSession();
       
-      console.log('🔄 [ApiClient] New session after refresh:', {
-        hasSession: !!newSession,
-        hasUser: !!newSession?.user,
-        hasAccessToken: !!newSession?.user?.accessToken,
-        userId: newSession?.user?.id,
-        newTokenPrefix: newSession?.user?.accessToken ? `${newSession.user.accessToken.substring(0, 20)}...` : 'none',
-        hasError: !!(newSession?.user as any)?.error,
-        error: (newSession?.user as any)?.error
-      });
+ 
       
       if (!newSession?.user?.accessToken) {
         console.error('❌ [ApiClient] No access token after refresh');
@@ -327,29 +255,13 @@ class SecureApiClient {
       
       // Check for refresh token errors
       if ((newSession.user as any).error === "RefreshAccessTokenError") {
-        console.error('❌ [ApiClient] Refresh token expired');
         await showSignOutDialog("/login");
         throw new Error('Refresh token expired, re-authentication required');
       }
       
-      // Compare tokens to see if refresh actually worked
-      const tokenChanged = currentSession?.user?.accessToken !== newSession?.user?.accessToken;
-      console.log('🔄 [ApiClient] Token comparison:', {
-        tokenChanged: tokenChanged,
-        oldTokenPrefix: currentSession?.user?.accessToken ? `${currentSession.user.accessToken.substring(0, 20)}...` : 'none',
-        newTokenPrefix: newSession?.user?.accessToken ? `${newSession.user.accessToken.substring(0, 20)}...` : 'none'
-      });
-      
-      if (!tokenChanged) {
-        console.warn('⚠️ [ApiClient] Token did not change after refresh - this may indicate an issue');
-      }
-      
-      console.log('✅ [ApiClient] Session refresh completed successfully');
+
     } catch (error: any) {
-      console.error('❌ [ApiClient] Session refresh error:', {
-        error: error?.message || 'Unknown error',
-        errorType: error?.constructor?.name || typeof error
-      });
+
       
       // If refresh fails, logout the user
       await showSignOutDialog("/login");

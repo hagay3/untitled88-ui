@@ -652,6 +652,34 @@ export interface ExportStatsResponse {
   };
 }
 
+// Email block update API
+export async function updateEmailBlock(
+  emailHtml: string,
+  blockId: string,
+  content: string,
+  styles: Record<string, string>
+): Promise<{ success: boolean; updated_html?: string; error?: string }> {
+  try {
+    const response = await apiRequest('/emails/update-block', {
+      method: 'POST',
+      body: JSON.stringify({
+        email_html: emailHtml,
+        block_id: blockId,
+        content,
+        styles
+      })
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error updating email block:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
 // Text validation constants
 export const TEXT_LIMITS = {
   MAX_PROMPT_LENGTH: 2000,
