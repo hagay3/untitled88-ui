@@ -511,33 +511,8 @@ export default function EditablePreview({
     };
   };
 
-  // Debug function to inspect iframe content
-  const debugIframeContent = () => {
-    if (!iframeRef.current) {
-      
-      return;
-    }
-
-    const iframe = iframeRef.current;
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    
-    if (!iframeDoc) {
-      
-      return;
-    }
-
-    
-;
-
-    // List all elements with data-block-id
-    iframeDoc.querySelectorAll('[data-block-id]');
-  };
 
   const handleIframeLoad = () => {
-    
-    
-    // Debug iframe content immediately
-    setTimeout(debugIframeContent, 50);
     
     // Small delay to ensure content is fully rendered
     setTimeout(() => {
@@ -605,13 +580,7 @@ export default function EditablePreview({
               <span className="font-medium">Edit Mode</span>
             </div>
 
-            {/* Debug Button */}
-            <button
-              onClick={debugIframeContent}
-              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded border hover:bg-gray-200"
-            >
-              🐛 Debug
-            </button>
+
           </div>
 
           <div className="flex items-center space-x-3">
