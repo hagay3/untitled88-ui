@@ -652,27 +652,38 @@ export interface ExportStatsResponse {
   };
 }
 
-// Email block update API
-export async function updateEmailBlock(
-  emailHtml: string,
-  blockId: string,
-  content: string,
-  styles: Record<string, string>
-): Promise<{ success: boolean; updated_html?: string; error?: string }> {
+
+// Update email content in database
+export async function updateEmailContent(
+  messageId: number,
+  emailContent: string,
+  changeDescription?: string
+): Promise<{ success: boolean; message_id?: number; error?: string }> {
   try {
-    const response = await apiRequest('/emails/update-block', {
+    console.log('📤 [updateEmailContent] Starting API call:', {
+      messageId,
+      contentLength: emailContent.length,
+      changeDescription,
+      timestamp: new Date().toISOString()
+    });
+    
+    const response = await apiRequest('/emails/update-content', {
       method: 'POST',
       body: JSON.stringify({
-        email_html: emailHtml,
-        block_id: blockId,
-        content,
-        styles
+        message_id: messageId,
+        email_content: emailContent,
+        change_description: changeDescription || 'Manual edit'
       })
+    });
+
+    console.log('✅ [updateEmailContent] API call successful:', {
+      success: response.success,
+      messageId: response.message_id
     });
 
     return response;
   } catch (error) {
-    console.error('Error updating email block:', error);
+    console.error('❌ [updateEmailContent] API call failed:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

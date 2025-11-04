@@ -116,62 +116,38 @@ export class EmailParser {
   }
   
   /**
-   * Extract CSS styles from element
+   * Extract CSS styles from element - ONLY extract what's needed for the specific block type
    */
   private extractStyles(element: Element): Record<string, string> {
     const styles: Record<string, string> = {};
     
-    // Extract inline styles from the main element
-    const styleAttr = element.getAttribute('style');
-    if (styleAttr) {
-      this.parseStyleString(styleAttr, styles);
-    }
-    
-    // Extract styles from child elements (like td, img, a)
-    const childElements = element.querySelectorAll('td, img, a, h1, h2, h3, p');
-    childElements.forEach((child) => {
-      const childStyle = child.getAttribute('style');
-      if (childStyle) {
-        this.parseStyleString(childStyle, styles);
-      }
-    });
+    // DON'T extract container styles - they should stay on the container
+    // ONLY extract styles from the actual editable element
     
     // Extract specific attributes for images
-    if (element.querySelector('img')) {
-      const img = element.querySelector('img');
-      if (img) {
-        styles.width = img.getAttribute('width') || styles.width || 'auto';
-        styles.height = img.getAttribute('height') || styles.height || 'auto';
-        styles.alt = img.getAttribute('alt') || '';
-      }
+    const img = element.querySelector('img');
+    if (img) {
+      // Only extract image-specific attributes, not styles
+      styles.width = img.getAttribute('width') || 'auto';
+      styles.height = img.getAttribute('height') || 'auto';
+      styles.alt = img.getAttribute('alt') || '';
+      // Don't extract CSS styles from img - they should stay in the HTML
     }
     
     // Extract href for buttons
-    if (element.querySelector('a')) {
-      const link = element.querySelector('a');
-      if (link) {
-        styles.href = link.getAttribute('href') || '#';
-      }
+    const link = element.querySelector('a');
+    if (link) {
+      styles.href = link.getAttribute('href') || '#';
+      // Don't extract CSS styles from link - they should stay in the HTML
     }
+    
+    // For text blocks, don't extract any styles
+    // The styles should remain in the original HTML
     
     return styles;
   }
   
-  /**
-   * Parse CSS style string into object
-   */
-  private parseStyleString(styleString: string, styles: Record<string, string>): void {
-    styleString.split(';').forEach((rule) => {
-      const colonIndex = rule.indexOf(':');
-      if (colonIndex > 0) {
-        const property = rule.substring(0, colonIndex).trim();
-        const value = rule.substring(colonIndex + 1).trim();
-        if (property && value) {
-          styles[property] = value;
-        }
-      }
-    });
-  }
+
   
   /**
    * Update DOM element with new block data
@@ -201,8 +177,7 @@ export class EmailParser {
           if (block.styles.href) {
             link.setAttribute('href', block.styles.href);
           }
-          // Update button styles
-          this.updateElementStyles(link, block.styles);
+          // Don't update styles - preserve original HTML
         }
         break;
         
@@ -221,7 +196,7 @@ export class EmailParser {
           const mainTextElement = textElements[0];
           if (mainTextElement) {
             mainTextElement.textContent = block.content;
-            this.updateElementStyles(mainTextElement, block.styles);
+            // Don't update styles - preserve original HTML
           }
         } else {
           // Fallback: update the element directly
@@ -230,31 +205,18 @@ export class EmailParser {
         break;
     }
     
-    // Update container styles
-    this.updateElementStyles(element, block.styles);
+    // Don't update container styles - preserve original HTML structure
   }
   
   /**
    * Update element styles from styles object
+   * NOTE: Since we don't extract CSS styles anymore, this is not used
    */
-  private updateElementStyles(element: Element, styles: Record<string, string>): void {
-    const styleUpdates: string[] = [];
-    
-    Object.entries(styles).forEach(([property, value]) => {
-      // Skip non-CSS properties
-      if (['alt', 'href', 'width', 'height'].includes(property)) {
-        return;
-      }
-      
-      if (value && value.trim()) {
-        styleUpdates.push(`${property}: ${value}`);
-      }
-    });
-    
-    if (styleUpdates.length > 0) {
-      element.setAttribute('style', styleUpdates.join('; '));
-    }
-  }
+  // private updateElementStyles(element: Element, styles: Record<string, string>): void {
+  //   // Skip style updates - we preserve original HTML styles
+  //   // Only non-CSS attributes (alt, href, width, height) are handled in updateElement
+  //   return;
+  // }
   
   /**
    * Get element position in DOM tree for sorting
