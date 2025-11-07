@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import SEO from '@/components/SEO';
+import { BetaWall } from '@/components/BetaWall';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -53,7 +54,9 @@ export default function Dashboard() {
         description="Create and manage your email campaigns with AI-powered design tools"
         noindex={true}
       />
-      <DashboardLayout initialPrompt={initialPrompt} />
+      <BetaWall requireBetaAccess={true}>
+        <DashboardLayout initialPrompt={initialPrompt} />
+      </BetaWall>
     </>
   );
 }

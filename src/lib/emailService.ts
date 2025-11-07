@@ -8,6 +8,13 @@ interface EmailOptions {
   resetUrl: string;
 }
 
+interface TestEmailOptions {
+  to: string;
+  subject: string;
+  htmlContent: string;
+  senderEmail: string;
+}
+
 class EmailService {
   private transporter: nodemailer.Transporter;
 
@@ -90,6 +97,43 @@ The Untitled88 Team
       return true;
     } catch (error) {
       console.error('Failed to send password reset email:', error);
+      return false;
+    }
+  }
+
+  async sendTestEmail({ to, subject, htmlContent, senderEmail }: TestEmailOptions): Promise<boolean> {
+    try {
+      // Verify SMTP connection
+      await this.transporter.verify();
+      console.log('SMTP connection verified successfully');
+
+      // Email options
+      const mailOptions = {
+        from: {
+          name: 'Untitled88',
+          address: process.env.SMTP_USER!,
+        },
+        to: to,
+        subject: subject,
+        html: htmlContent,
+        // Text fallback - extract text from HTML or provide basic fallback
+        text: `This is a test email sent from Untitled88.\n\nSent by: ${senderEmail}\n\nIf you can't see the email content, please enable HTML viewing in your email client.`,
+      };
+
+      // Send email
+      const info = await this.transporter.sendMail(mailOptions);
+      
+      console.log('Test email sent successfully:', {
+        messageId: info.messageId,
+        to: to,
+        subject: subject,
+        senderEmail: senderEmail,
+        timestamp: new Date().toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to send test email:', error);
       return false;
     }
   }

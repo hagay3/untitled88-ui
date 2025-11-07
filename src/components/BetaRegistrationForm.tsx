@@ -1,0 +1,257 @@
+/**
+ * Beta Registration Form Component
+ * Handles beta access registration with glass morphism design
+ */
+
+import React, { useState } from 'react';
+import LoadingSpinner from './LoadingSpinner';
+
+interface BetaRegistrationFormProps {
+  onSuccess?: (data: { email: string; name: string }) => void;
+  onClose?: () => void;
+  className?: string;
+}
+
+interface FormData {
+  email: string;
+  name: string;
+  company: string;
+  role: string;
+  reason: string;
+}
+
+export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
+  onSuccess,
+  onClose,
+  className = ''
+}) => {
+  const [formData, setFormData] = useState<FormData>({
+    email: '',
+    name: '',
+    company: '',
+    role: '',
+    reason: ''
+  });
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (error) {
+      setError(null);
+    }
+  };
+
+  const validateForm = (): string | null => {
+    if (!formData.email.trim()) return 'Email is required';
+    if (!formData.name.trim()) return 'Name is required';
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      return 'Please enter a valid email address';
+    }
+    
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/beta/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Immediately call onSuccess to show verification form
+        onSuccess?.({ email: formData.email, name: formData.name });
+      } else {
+        setError(result.error || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Beta registration error:', err);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  return (
+    <div className={`glass-card p-8 max-w-md mx-auto ${className}`}>
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        
+        <h2 className="text-2xl font-bold text-black mb-2">Join the Beta</h2>
+        <p className="text-gray-600">
+          Get early access to the future of AI-powered email marketing
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Email Field */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
+            Email Address *
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            className="glass-input w-full px-4 py-3 text-black placeholder-gray-500"
+            placeholder="your@email.com"
+            required
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Name Field */}
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-black mb-2">
+            Full Name *
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            className="glass-input w-full px-4 py-3 text-black placeholder-gray-500"
+            placeholder="John Doe"
+            required
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Company Field */}
+        <div>
+          <label htmlFor="company" className="block text-sm font-medium text-black mb-2">
+            Company
+          </label>
+          <input
+            type="text"
+            id="company"
+            name="company"
+            value={formData.company}
+            onChange={handleInputChange}
+            className="glass-input w-full px-4 py-3 text-black placeholder-gray-500"
+            placeholder="Your Company"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Role Field */}
+        <div>
+          <label htmlFor="role" className="block text-sm font-medium text-black mb-2">
+            Role
+          </label>
+          <select
+            id="role"
+            name="role"
+            value={formData.role}
+            onChange={handleInputChange}
+            className="glass-input w-full px-4 py-3 text-black"
+            disabled={isSubmitting}
+          >
+            <option value="">Select your role</option>
+            <option value="Marketing Manager">Marketing Manager</option>
+            <option value="Email Marketer">Email Marketer</option>
+            <option value="Designer">Designer</option>
+            <option value="Founder/CEO">Founder/CEO</option>
+            <option value="Developer">Developer</option>
+            <option value="Freelancer">Freelancer</option>
+            <option value="Agency Owner">Agency Owner</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        {/* Reason Field */}
+        <div>
+          <label htmlFor="reason" className="block text-sm font-medium text-black mb-2">
+            Why do you want to try Untitled88?
+          </label>
+          <textarea
+            id="reason"
+            name="reason"
+            value={formData.reason}
+            onChange={handleInputChange}
+            rows={3}
+            className="glass-input w-full px-4 py-3 text-black placeholder-gray-500 resize-none"
+            placeholder="Tell us what you're looking for in an email marketing tool..."
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn-primary w-full flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <>
+              <LoadingSpinner />
+              <span>Joining Beta...</span>
+            </>
+          ) : (
+            <span>Join Beta Program</span>
+          )}
+        </button>
+
+        {/* Close Button */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-ghost w-full"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+        )}
+      </form>
+
+      {/* Privacy Note */}
+      <p className="text-xs text-gray-500 text-center mt-4">
+        By joining, you agree to receive beta updates and product communications. 
+        We respect your privacy and won&apos;t spam you.
+      </p>
+    </div>
+  );
+};

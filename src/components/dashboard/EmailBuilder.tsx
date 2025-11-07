@@ -37,6 +37,12 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
       defaultContent: 'Click Here'
     },
     {
+      type: 'features',
+      icon: '⭐',
+      label: 'Features List',
+      defaultContent: 'Product features'
+    },
+    {
       type: 'divider',
       icon: '➖',
       label: 'Divider',

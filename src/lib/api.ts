@@ -237,20 +237,6 @@ export const aiAPI = {
     return apiRequest(`/ai/conversations/${conversationId}/messages${query ? `?${query}` : ''}`);
   },
 
-  addMessage: async (conversationId: number, messageData: {
-    message_content: string;
-    message_role?: string;
-    message_type?: string;
-    tokens_used?: number;
-    processing_time_ms?: number;
-    metadata?: any;
-  }) => {
-    return apiRequest(`/ai/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify(messageData),
-    });
-  },
-
   archiveConversation: async (conversationId: number) => {
     return apiRequest(`/ai/conversations/${conversationId}/archive`, {
       method: 'POST',
@@ -653,16 +639,17 @@ export interface ExportStatsResponse {
 }
 
 
-// Update email content in database
+// Update email content in database with JSON structure
 export async function updateEmailContent(
   messageId: number,
-  emailContent: string,
+  emailJson: any, // EmailStructure object
   changeDescription?: string
 ): Promise<{ success: boolean; message_id?: number; error?: string }> {
   try {
     console.log('📤 [updateEmailContent] Starting API call:', {
       messageId,
-      contentLength: emailContent.length,
+      blocksCount: emailJson?.blocks?.length || 0,
+      subject: emailJson?.subject || 'N/A',
       changeDescription,
       timestamp: new Date().toISOString()
     });
@@ -671,7 +658,7 @@ export async function updateEmailContent(
       method: 'POST',
       body: JSON.stringify({
         message_id: messageId,
-        email_content: emailContent,
+        email_json: emailJson,
         change_description: changeDescription || 'Manual edit'
       })
     });

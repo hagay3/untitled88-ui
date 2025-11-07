@@ -7,14 +7,19 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'next-auth/react';
+import { RiMailSendLine } from "react-icons/ri";
 
 interface DashboardNavbarProps {
   user: any;
   onTemplateGallery: () => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   onExport: () => void;
   onShare: () => void;
+  onSendTestEmail?: () => void;
   currentEmail: any;
+  hasPendingChanges?: boolean;
+  pendingChangesCount?: number;
+  isCreatingShare?: boolean;
 }
 
 export default function DashboardNavbar({
@@ -23,14 +28,32 @@ export default function DashboardNavbar({
   onSave,
   onExport,
   onShare,
-  currentEmail
+  onSendTestEmail,
+  currentEmail,
+  hasPendingChanges = false,
+  pendingChangesCount = 0,
+  isCreatingShare = false
 }: DashboardNavbarProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
     await onExport();
     setTimeout(() => setIsExporting(false), 1000);
+  };
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    try {
+      setIsSaving(true);
+      await onSave();
+    } catch (error) {
+      console.error('Save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSignOut = () => {
@@ -51,7 +74,7 @@ export default function DashboardNavbar({
           />
           <div className="h-6 w-px bg-gray-300" />
           <h1 className="text-lg font-semibold text-gray-900">
-            Untitled88 | Dashboard
+            {currentEmail?.subject || currentEmail?.message_subject || 'Untitled88 | Dashboard'}
           </h1>
         </div>
 
@@ -74,13 +97,31 @@ export default function DashboardNavbar({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onSave}
-                className="btn-ghost"
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`btn-ghost relative ${hasPendingChanges ? 'border-amber-300 bg-amber-50' : ''}`}
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                Save
+                {isSaving ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Save
+                    {hasPendingChanges && pendingChangesCount > 0 && (
+                      <span className="ml-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                        {pendingChangesCount}
+                      </span>
+                    )}
+                  </>
+                )}
               </Button>
 
               <Button
@@ -96,15 +137,41 @@ export default function DashboardNavbar({
                 {isExporting ? 'Exporting...' : 'Export'}
               </Button>
 
+              {onSendTestEmail && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSendTestEmail}
+                  className="btn-primary flex-shrink-0 whitespace-nowrap"
+                >
+                  <RiMailSendLine />
+                  <span className="ml-2">Send Email</span>
+                  
+                </Button>
+              )}
+
               <Button
                 size="sm"
                 onClick={onShare}
-                className="btn-primary"
+                disabled={isCreatingShare}
+                className="btn-primary flex-shrink-0 whitespace-nowrap"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                </svg>
-                Share
+                {isCreatingShare ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sharing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                    </svg>
+                    Share
+                  </>
+                )}
               </Button>
             </>
           )}

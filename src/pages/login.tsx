@@ -8,6 +8,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SEO from "@/components/SEO";
 import { prepareDeviceInfoForLogin } from "@/utils/deviceInfo";
+import { BetaWall } from "@/components/BetaWall";
 
 export default function Login() {
   const { data: session, status } = useSession();
@@ -307,7 +308,8 @@ export default function Login() {
         keywords="sign in, login, email marketing dashboard, AI email designer"
         url="/login"
       />
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <BetaWall requireBetaAccess={true}>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md shadow-lg border-0">
           <CardHeader className="text-center">
             <div className="mb-8 flex flex-col items-center gap-0">
@@ -617,7 +619,8 @@ export default function Login() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </BetaWall>
     </>
   );
 }

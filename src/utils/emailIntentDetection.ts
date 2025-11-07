@@ -13,16 +13,13 @@ export interface IntentAnalysis {
 export function analyzeEmailIntent(
   userPrompt: string, 
   hasExistingEmail: boolean,
-  conversationHistory?: any[]
+  _conversationHistory?: any[]
 ): IntentAnalysis {
   const prompt = userPrompt.toLowerCase().trim();
   
-  // Strong update indicators
+  // Strong update indicators - ONLY these specific words trigger update
   const updateKeywords = [
-    'update', 'modify', 'change', 'edit', 'fix', 'improve', 'adjust',
-    'add to', 'remove from', 'replace', 'instead of', 'rather than',
-    'make it', 'make the', 'change the', 'update the', 'fix the',
-    'add a', 'remove the', 'replace the', 'instead make'
+    'update', 'modify', 'change', 'existing'
   ];
   
   // Strong create indicators  
@@ -31,17 +28,11 @@ export function analyzeEmailIntent(
     'start fresh', 'from scratch', 'different email', 'another email'
   ];
   
-  // Context references (suggest update)
-  const contextReferences = [
-    'this email', 'the email', 'current email', 'above email',
-    'that email', 'my email', 'the one', 'it', 'this one'
-  ];
+  // Context references (suggest update) - DISABLED for stricter control
+  const contextReferences: string[] = [];
   
-  // Specific change requests (strong update signals)
-  const specificChanges = [
-    'button', 'color', 'subject', 'headline', 'image', 'text',
-    'font', 'size', 'layout', 'cta', 'link', 'section'
-  ];
+  // Specific change requests (strong update signals) - DISABLED for stricter control
+  const specificChanges: string[] = [];
   
   let reasoning: string[] = [];
   let updateScore = 0;
@@ -84,32 +75,16 @@ export function analyzeEmailIntent(
     }
   });
   
-  // Boost update score if there's an existing email
-  if (hasExistingEmail) {
-    updateScore += 1;
-    reasoning.push('Has existing email in context');
-  } else {
+  // Default to create unless explicit update keywords are used
+  if (!hasExistingEmail) {
     createScore += 1;
-    reasoning.push('No existing email in context');
+    reasoning.push('No existing email in context - defaulting to create');
   }
   
-  // Check conversation history for context
-  if (conversationHistory && conversationHistory.length > 0) {
-    const lastMessage = conversationHistory[conversationHistory.length - 1];
-    if (lastMessage?.type === 'email') {
-      updateScore += 2;
-      reasoning.push('Previous message was an email generation');
-    }
-  }
+  // Conversation history no longer affects intent - only explicit keywords matter
   
-  // Pattern analysis
-  const hasComparison = prompt.includes('instead') || prompt.includes('rather') || prompt.includes('vs');
-  const hasNegation = prompt.includes("don't") || prompt.includes("not") || prompt.includes("remove");
-  
-  if (hasComparison || hasNegation) {
-    updateScore += 2;
-    reasoning.push('Contains comparison or negation language');
-  }
+  // Pattern analysis - DISABLED for stricter control
+  // Only explicit update keywords will trigger updates
   
   // Determine intent
   let intent: 'create' | 'update' | 'unclear';
@@ -119,12 +94,14 @@ export function analyzeEmailIntent(
   const updateConfidence = totalScore > 0 ? updateScore / totalScore : 0;
   const createConfidence = totalScore > 0 ? createScore / totalScore : 0;
   
-  if (updateScore > createScore && updateScore >= 3) {
+  // Only trigger update if explicit update keywords are found AND score is high enough
+  if (updateScore >= 2 && updateScore > createScore) {
     intent = 'update';
     confidence = Math.min(updateConfidence, 0.95);
-  } else if (createScore > updateScore && createScore >= 3) {
+  } else if (createScore > 0 || updateScore === 0) {
+    // Default to create for all other cases
     intent = 'create';
-    confidence = Math.min(createConfidence, 0.95);
+    confidence = Math.min(Math.max(createConfidence, 0.8), 0.95);
   } else {
     intent = 'unclear';
     confidence = 0.5;

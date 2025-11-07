@@ -7,15 +7,19 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import ChatPanel from './ChatPanel';
-import PreviewPanel from './PreviewPanel';
+import { SimpleJsonEmailEditor } from './SimpleJsonEmailEditor';
 import DashboardNavbar from './DashboardNavbar';
 import TemplateGallery from './TemplateGallery';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDialog, { useErrorDialog } from '@/components/ui/ErrorDialog';
 import ExportDialog from '@/components/ui/ExportDialog';
+import SendTestEmailDialog from '@/components/ui/SendTestEmailDialog';
 import { apiClient } from '@/utils/apiClient';
+import { ShareDialog } from '@/components/ShareDialog';
 import { analyzeEmailIntent, generateClarificationPrompt } from '@/utils/emailIntentDetection';
 import { downloadHtmlFile, exportEmailWithMetadata } from '@/utils/exportUtils';
+import { updateEmailContent } from '@/lib/api';
+import { emailConverter } from '@/utils/EmailConverter';
 
 interface DashboardLayoutProps {
   initialPrompt?: string;
@@ -26,14 +30,33 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   const router = useRouter();
   const { isOpen: errorDialogOpen, message: errorMessage, showError, hideError } = useErrorDialog();
   
+  // Success message state
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+  
   // State management
   const [currentEmail, setCurrentEmail] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
-  const [generationType, setGenerationType] = useState<'create' | 'update'>('create');
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
+  const [testEmailMessage, setTestEmailMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareableLink, setShareableLink] = useState<string>('');
+  const [isCreatingShare, setIsCreatingShare] = useState(false);
+  
+  // Export function from SimpleJsonEmailEditor (always current local state)
+  const [getExportHtml, setGetExportHtml] = useState<(() => string) | null>(null);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
+  
+  // Pending changes state (from SimpleJsonEmailEditor)
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [pendingChangesCount, setPendingChangesCount] = useState(0);
   const [dailyUsage, setDailyUsage] = useState({
     daily_limit: 10,
     daily_used: 0,
@@ -124,7 +147,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       if (chatHistoryResponse.ok) {
         const chatData = await chatHistoryResponse.json();
         // this is an example of chat data :
-        // { "messages": [ { "content": "modify the existing email and extract the content from https://getkaps.com/ to get the right content for the annual subscription 50% off", "conversation_id": 52, "emailData": { "accessibilityFeatures": [ ], "colorPalette": [ "#f7f8fa", "#ffffff", "#111111", "#333333", "#4A90E2", "#888888" ], "compatibilityNotes": "", "designNotes": "The primary goal was to align the email's branding and content with the information on getkaps.com, as requested. I focused on updating key brand assets (logo, imagery) and refining the copy to be more compelling. The core layout, color scheme, and responsive structure were intentionally preserved to maintain the email's proven compatibility and professional quality. The changes enhance the email's authenticity and directness without requiring a full redesign.", "estimatedSize": "16", "features": [ ], "fontsUsed": [ "Helvetica", "Arial", "sans-serif" ], "html": "<html lang=\"en\"><head>    <meta charset=\"UTF-8\">    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">    <title>Email Subject Here</title>    <!--[if mso]>    <xml>        <o:OfficeDocumentSettings>            <o:AllowPNG/>            <o:PixelsPerInch>96</o:PixelsPerInch>        </o:OfficeDocumentSettings>    </xml>    <![endif]--></head><body style=\"margin: 0; padding: 0; background-color: #f4f4f4;\">    <!-- Main Email Container -->    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f4f4f4;\">        <tbody><tr>            <td align=\"center\">                <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #ffffff; margin: 0 auto;\">                                        <!-- HEADER BLOCK -->                    <tbody><tr data-block-id=\"header-1\" data-block-type=\"header\">                        <td style=\"padding: 30px 40px 20px 40px; text-align: center; background-color: #ffffff;\">                            <img src=\"https://www.untitled88.com/logo-untitled88.png\" alt=\"Company Logo\" width=\"160\" style=\"max-width: 100%; height: auto; display: block; margin: 0 auto;\">                        </td>                    </tr>                                        <!-- HERO BLOCK -->                    <tr data-block-id=\"hero-1\" data-block-type=\"hero\">                        <td style=\"padding: 40px 40px 30px 40px; text-align: center;\">Your Main Headline Here                                                                                        Supporting text that explains your main message and value proposition.</td>                    </tr>                                        <!-- IMAGE BLOCK -->                    <tr data-block-id=\"image-1\" data-block-type=\"image\">                        <td style=\"padding: 20px 40px; text-align: center;\">                            <img src=\"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5OjcBCgoKDQwNGg8PGjclHyU3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3N//AABEIAKcAswMBIgACEQEDEQH/xAAcAAABBQEBAQAAAAAAAAAAAAAEAAECAwUHBgj/xABEEAABAwIDBQMHCwIDCQAAAAABAAIDBBEFEiEGEzFBUSJhgQcUMnGRobEVFyNCUlWTwdHT8GLhFjNTJHJzgpKio8Lx/8QAGQEBAQEBAQEAAAAAAAAAAAAAAAECAwQF/8QAIREAAgICAwEBAQEBAAAAAAAAAAECEQMSEyExQVEEIyL/2gAMAwEAAhEDEQA/AMjImyIkxpsi955ijImyInImyIAfImyInIlkQAxYmyIksTZEID5E2RE5ExYgByxMWIjIlkVANkSyIjKmyIAfKllRBYmyIRg+VPlV+RLIhCjKllV+VLKgKMiWVX5Ui1CFGVJXZUkBp5E27RhjTbtSzrQJu0t2jN1oluksUB7tNu0buktyligLdpt2jjEomJBQFu0xjRu6TGJABFiYsRhiUTGhKBMiWRFGNMY0JQKWJsiKyJixBQNkSyIjIlkQlA2RLIiMiWRBQPlSyojImyIAfIkiMiSA3N0kYVpbhP5vouWx6dDObCn3C0m0/wDAsPDMegqsVmw+ob5tPEDdsoLbkOI0J4ggtI8e5TdF0C9wluFreb3J69LJvN9U3Q0MkwKBgQcW1WHS42cKa2Zri8xibTLmGluPXmvQGB2nuV2GhlblVShkA+kc1oJAu7hcmw96NxKopcNpXVFZM2KMXsTpc9w5rzeEU9TtBigxeUvjwyOXNS07hrI4NDcx7hY2HefGbk4zXMNr95UTEtLc6W5hVuhW7MOJnmJMY0eYlAxJZmgHdJt0jjEm3StigAxpt2jzEoGNLJQHu02RFOZoo5DyF1Gy0D5E2RRkrqKKQRy1dOyQmwaZQCr3BrQ43sLXLugUtEplOVJZk+1GEQSuifUOc5vExxktPqKSm6Lozpwp1IU60/NlMU68XKe/QyxT2PLxWbj+zFHjlO1k4yyMJMczbXYfzHcvUCDVSECzLJZpRo5RDU7Q7Jv3WIQmroAbMeSS3us7i31H+61Z9rqGbCaiWBsjKwRndwuGpdysRx6roEtHHPE+KZjXxvBDmOFw4dF4PavY6mpIjW4eHsjJAdFe4b3g9OVlyeRx+m4xUnRzJm5gmbI0/TNcHGR19T1XusR27pI6QGgpnyTkdoS9hrDb16/ovJ1lA9mewcTdex8nOztHUxSV9WzfTwyZGRvNwzQHNbr09SkMjfjLLHRl4Js3iO0lU3FNozIaZovHE8WzjoG8Gt95XvW0bY2NYxrGsaLBrRYW5WW06nv2iLElQNOvTGdHFxsxnU6qdAtp1OqzTLosqMPGYrqdQNOto0yg6nV5UZeMxjAomGy13QKp0KcqM8ZkuiXlNqNoanDKt1HQ00b5NznMjz6On2ba6d690+Fch2yro6nHKt8YLmBm4idrrl0dbrqDr3d6cl+DjRhVNbWV7t9UPkle9tnEuIA8OA9yqNXO0bsVlQ5gbYNbM7KB4ngqTMSRcuA00PcoZcwdI7gT2Vmy0ScAxoAbrxPGytqMTrPNxSOqppIRrkLzlBvy6oQgnQcPzVZtex4JYoczOJ1SUcvRJLFH2M2Kwtr4qW7WbDXmWcCT6MtPayyAj1Il+K0rJcjn3df0QOC+Ws0f09LjP8ChGpBipjroJDYSsJ6XVgqBfQAjqCtLLFmGpfSeS6ydo6d0uHljRe7u16lrhzXBU4oGupSO9WVuLEG1NHLqygjALXM4iy2tgaWSmNe/I4xuyhulgSL3+KWKRN1VmFxMfh7GxP1bITZxJb7F48eRxZ9LItom9FXvdUiKWlaxp0zb9hN/Urp62lglEUsga4tJF2nkvPU1T5mDY2dy+iDhe/r8FcMffDCRO5r5CSQ8MI3evNehZX+HleN/DapKqGsz7lstmmxc+JzL+q41VxjavMv2rexptDmdzzHie63JQG1rJKdzZoDvCNQ11tPXxWt8j+E1PSuiaqnRt5Lyz9qCwRiKmdumm/akcTw68/FZmObfR0Mf0toC7VjeL3ddOiqeV+Ir1Xp7aSNUPjuuWv8AKs+QOdFh0hntZrgwe/tH4LxOI4/i+KzTS1NVO3eOzOijeWxjT7PDxXSOPK/Tm8mNeHT9u9q6bD8PlpcOqo318hyExPvuRzJPXuXJMheHSSZra3cXaDu+HvVzonSui0LQWN1J4EAcPUgq57I5DA0Zgw5SevJemMdejlKVlYeGZrcOqllc+4a053G5A56Kplt0HBvA2RuFPmppxUxkZLFji8aEafotmAExvFwczT1PNIRjm65RkzTWVhbTgcScoFmtH6IqKmgh9O7njjpYeAVBmCNJaoa0jRkQHgkhDr7NoKQsL3VYAJ0c46n3Kxm0NNcZKsHvawn/ANVc7YLDn33FTURm39LtFX/gFoDQzFZm6f6I/N35L5t/zM9u2VBcOMRSEk1th3DXx7KOp8SY4gNqnEdf4xZI2JliGb5SL2jU3g/QqFDgbqjP5vVQuyusQ8SMd4ghZrF8NbN+nq4K5ml6p1vD9E2JYiBE0CXML81jR4PiVOMrGxOafsyEfEBZG0NRPQiGKoBDn3LQXA6eB6qf8vqLKlG7NPFJB8nMlLm9p5+sOB7vBZtHKZad4FS6EB/KYM5Dr6+Koxrz+LCZN5Ty7pjAc2lmgepeao8QmdSEQte4Nd2nN1W8WBN2WeWlR6CsjmBLm1tQR1FUxBy0z5CC2sqMv2vPYtf+4LzcmLFs2WN7rnQhwd8bp4ppQDvgCbXIbYcvivbHFR5ZZDadg9VK/SomDOpr47/FVVWC7iIF1ZO539FWx1vXbgsmaphiYXuaNW8Cs6o2hEWRsBsLcGi4K3VHO7N2bDY4I5ZHSVEpjaXbsTE5vUQvIV1K+erDpyQ5wu0udmAaBw9v5r0FBizsQnc8ejDGXP042B09y8vWTSupI3TvJnjcDG0DVzf0Fvgndh1Q+7aQ4NIAb6duL/7IeSZpaGMHY45B9ZVZyQHMa7W+8PXuTCH0JJTlaToOJI/+LdnM0t6wU7XMzGT0gLaZj3crfog66jFOYzJISCwPBy8QddO7VE07GVDHVEzpTG1pjfawsDqNVXPVsdLaCPO4Cwc/UgDlbks+mn4CiNj8pbG5rQ3QOFy7+yedxDGMPaJ4MB4KE9RMb3JPdyCrpd6+rhjHF7wPeq+kZPTYbS1FDTMDg3O8jOL6jjp4fzkqMT83hcDJ/m3IDcuW+p1I8ERjlTFBTmSncXSulzO0Nx/bQexYEeISzPklqpM0paMpP1fVzXNX6dJUlqFQ4c6SMPLIO1r23apkO+KnmeZJcSs9xuQGn9UlbZno+p2ztaf6ip+cxj0jZeXFXD6Lpnl3QK9klAReVz/FfL4qPoUmehFVCdA4KQnYTYG56LEbLhluy9gPK77LNrqeCokDW49URyO4Rxyty+y3wWNF9I4nqHzRZsge0vHFodey8HtXucT2ww3DDUOYHQEvyjpci3sXPsaE9Ni1TPS1znFkzw+pBLXuIPtNgEP/AImqo8SpcQExqKmFhYHuiDBbX28V6I/ytdpnPkXjO3Y3TMr8NmozOWCZuW49IA935rwuwT4mUNex0gL9/q1jdG20HtXnW+ULEHzRundUNaB2tw9jdfVl4IHZ7aOrw01jqSASMmcZCyRtwD1OnQ9FvF/PkjFqw8sLTZ0iowuirm3qI799iFiYnsfGY81LLM0N1AdYj3oHD9uq+CUb/DKV8TtcrHuaT3C+hXq6bHI8QpGkwCnucoAe256310V/2gafFM53ieAYjHHmMwLHaWawBefkwuSKzX71pJ4C1l2iqpqeejberAINstmke268VtHSx0swMHaL9Llr2j2gELvjz7dSOOTBr2jxsVPW0sMtPC97BMAHAiwNllubK1xMvZFrB1u/+69XXGSOlu+LKbW9LM2y89PE2QMBAFuDm8Cutr4cGgRsj84jBuL/AMKNoGCqqBvb5G3ebEnTThZUx04jc8NeL2tqrILwxiQEl4vcDhwSyJBuKsEcOWK5a0hxNhre/stYd+qyIHjPrwRNVUSmjgDgHbsEPvzva3wQGpOhBvyHFEVslUSF7tOAT4dMyCuhlk9FpuVU5rubXJ44JJHANa4Am3NUz2aGLVpq3Wa3LGNG2596zoo83ZzBtzxPJRN23vxBI/ntTtcCQHEgX1solQbsLdQhriGyQvH2g7ikgpB2zldpfRJUh3wTxuYc9mNBsdQCVGKpoJDkjq4s3QP1WdT43QQuG9c8W+1GdT7FoxbSUVh5u45+dmfmvHJP4fQTX0tdQXYZGOaR/vHX3WVsUTmSZIIXZ2i/aYLDXT4IF2PQDNljlcXG5swnuOlwiP8AEozWdBURR24mE6eKxLk+I0tH9AsSwZkb5Kiowqz5L3mgsHXPcOK8fX4E2PG4afcVjYZm5rzsALT4W09ZXRvlunmZc3aHC2mhK8hj2Mwx4o20zmhrgcpAcWnuF+BHqSGTL5RJwgWU+w0ILXyxRujIJP05b+ZVGwlFTsdiLauma4MnDA7M8N0vwIPXuW38tQUWGOq2tfUkDVoIFu7W6xdi8ejj8+jdE8ZpTKDcENzcrgdy6J5WnZhrGmqPVyxUFKQHcHagPBf4C/BDfIWGSvfLHFZ0uhc1xbfwII9ypnxKklJc6/i4kKltc0gimdvh9iMtfbw4rKhI3vE2MLoKOkmDRVzXeP8ALcWFp5XsANeV+5GYkxkrbva1x+qHDMAOvvWKMRZOwMkZJD/xGka+IQ9TJp2Jrt6ZiQUjhe1jkVFOJ4eyoozG9jHvIzC3u4lc0liMbntDMpaSD1uDZdPkrmblrczcwHLS65xXPtvmni95JGumvVeiKo4T7BDkseulv1TwWMrQUxDMw/S/LqkCMoaA0OuSXW1HctM5IsnDGMaLXvc2cLoJ8DC7OxxjPIAcUe+QSQi5u1vAqi5s3LwUsNWVMbPFacEmMaAmxB8PYgqgyGR5Mhfc30NhrrwWoCSBfrdVmKN0xcRcOPuVUkTVmYA0jtm3gkco7VrNPK3NXyUzmSEAZmD0fUoSBzWNuzOFu7MNUVtsWi70lG1+du5JCHVY65reELT/AFOa259yeTES9pADR3W/sslhZ6Re4HoSpGdo0tfvsuWiPTuzQbUubxMov0dlTmq09N//ADuJWdv2uFrkd4/n6qoyEOu57j0C1qTY1JK9sFjK0HmLG35rNra4eewzGV0XCxN/54qbKtzbZ42P6fR8PUViY9NvXxu6X5k28VdERzZrbUYm99I2Fz3FzzfV19Aq9n8jMPDh6b3HN8PgsOse6pEUh4tYAVp4ON3TW6m61FdmJSs2TKWm44+oH4p21xaQJIYieRMTfiAgXPsoOkut6ozszUkqXvtdzrcrnh6kzapzD6Tj36arMD1Nsv1VaGxrtqcw+rf+pedx6leKkzsjDg7jb1dEe15HDipZ2OGV4vfqo4ks8rZoLS91/ZZMWlp1tY66/qvQOo2SOJytDr6/z2LPq6IRPbumH1g6cVhxKmAh7SHsDWgHhZx096bK49v0mt0v0Ui0hwD82bnfh4KWVgb2xc8u1/LrDNopKdx4JOBvobDomUFiUXgO0dwU1Fw0QFO6bySU8qSGT0eYW1zeKiXt5X8F2FvkkwAkhuJ4qXsNnEyxXBtf/T00TO8j+Au7JxLFr90sXt/y11JsceMxAsLX79SkJhfU2PrXYfmdwINscTxjvJkh1/8AGkfI7gNtMTxf8SHh+Gr0Szj+9vpmefcEFWm5/Rduj8keAPjY6PEcUcwtBDhLFYg8D/lquTyM4DLo7E8YAPISQ/tqMuyOEOnHA8lp0kzd1ouuy+RTZqKN0kmK4wxjQS5zpoQAOp+jTs8kmzEEYd8s4kIy3eAungtl01B3fDUa96RVEbOT7y6bOusHyX7JAkfL9cCxoc69TALN0sT9Hw1HtUz5K9mGZw7G8SaY7B96iDsk8L/R81u0ZOSh1ki8EamwXXPms2YBdmxrEey4Mdeog0ceAP0fE9FOLyS7Oyl4hxbE5MjsrgyaE5SOR+j0TZA5E17h6DwPWp70/WBB6jgV18eSDAvvHF/xIv20/wA0OBfeGLfiRftpaByASKTX30tddeHkhwL7wxX8SL9tP80eBjhiGK/iRftpaBw/EyN9Hdtuys2R5e67vBd8qPI3gE57eI4sO8SRftqn5ktnfvPGfxYf21zatm7OEtKkACQCbBd0+ZLZ37zxn8WH9tL5ktnfvPGfxYf21nUbI4U5rRwdc34W0t1USNF3geRbABoMUxkjvlh/aTnyK7PkWOJ4vxvpJD+0mo2OCJLvPzJbO/eeM/iw/tpJqNj1kWATwO3sWI2mJa4ndHK4ARgAjNw7B/6vbW3ZmRuRza+z8hBfujmdfd3uc/Pdm/UO7rpJLZglUbOOlpnR/KEv0jHse92Z+ZrmBvAu0tYm/Hjrqb2jBZxU711fdrX5zEY3ZSO1oRn5Zha1rZRxskkgHpcEqKajpqQV+8bA9rrviPbs3LY2cNBxA5ZW8bXNUWz8t2tnxF8obYltnDMLsuT2tSQx1z/WdEkkBpOpZxQGJlX/ALRuWtEssedocL9vLcXPPjyHiA3Z0CQSiqdmMG6LSzsjVhFrEOGrSfS4uJvySSQFsuDOqKfJPVPdOImRRT5TmZbi4a+kfZoLg21qm2cbmLqefdAaRMewvbG3I5rhbNxOcnkOGnG6SQEJdnXyvkf54xpfHuh9CTZtnA8Xel2+IsL3NjcrTwzDGUEk7mvLjI7s3vZjBwaNToLk+sngLAJJAaCSSSASSSSASSSSASSSSASSSSASSSSA/9k=\" alt=\"Descriptive image text\" width=\"520\" style=\"max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 8px;\">                        </td>                    </tr>                                        <!-- TEXT BLOCK -->                    <tr data-block-id=\"text-1\" data-block-type=\"text\">                        <td style=\"padding: 20px 40px;\">Section Heading                                                                                        Your content text goes here. This can be multiple paragraphs with detailed information about your product or service.                                                                                        Additional paragraph content if needed.</td>                    </tr>                                        <!-- BUTTON BLOCK -->                    <tr data-block-id=\"button-1\" data-block-type=\"button\">                        <td style=\"padding: 30px 40px; text-align: center;\">                            <a href=\"https://example.com\" style=\"display: inline-block; padding: 15px 30px; background-color: #3B82F6; color: #ffffff; text-decoration: none; border-radius: 6px; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;\">Call to Action</a>                        </td>                    </tr>                                        <!-- DIVIDER BLOCK -->                    <tr data-block-id=\"divider-1\" data-block-type=\"divider\">                        <td style=\"padding: 20px 40px;\"></td>                    </tr>                                        <!-- FOOTER BLOCK -->                    <tr data-block-id=\"footer-1\" data-block-type=\"footer\">                        <td style=\"padding: 30px 40px; text-align: center; background-color: #f8f9fa;\">Company Name | 123 Street Address, City, State 12345                                                                                        Unsubscribe |                                 Privacy Policy</td>                    </tr>                                    </tbody></table>            </td>        </tr>    </tbody></table></body></html>", "message_id": 72, "mobileOptimized": true, "preheader": "Unlock the full power of personalized video for half the price. This is a limited-time offer to help you build stronger connections.", "subject": "A personal offer: 50% off your year with Kaps" }, "id": "ai_msg_72", "message_type": "email_generation", "source": "ai_message", "timestamp": "2025-11-03T07:15:56", "type": "email" } ], "success": true, "total_count": 1 }
         // 1) Load ALL conversations with messages and emails (do not filter by message_type)
         if (chatData.success && chatData.messages && chatData.messages.length > 0) {
           console.log('📨 [DashboardLayout] Processing chat history:', {
@@ -185,13 +207,28 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
             // The emailData should already be parsed from the backend
             const emailData = latestEmailMessage.emailData;
             
-            // Handle both updated_email_html and email_html fields
-            const emailHtml = emailData.html || emailData.updated_email_html || emailData.email_html;
+            // Convert from JSON structure to HTML if available
+            let emailHtml = '';
+            if (emailData.email_json) {
+              // New JSON format - convert to HTML
+              try {
+                emailHtml = emailConverter.jsonToHtml(emailData.email_json);
+                console.log('✅ [DashboardLayout] Converted email JSON to HTML');
+              } catch (error) {
+                console.error('❌ [DashboardLayout] Failed to convert JSON to HTML:', error);
+                // Fallback to legacy HTML if conversion fails
+                emailHtml = emailData.html || emailData.updated_email_html || emailData.email_html || '';
+              }
+            } else {
+              // Legacy HTML format
+              emailHtml = emailData.html || emailData.updated_email_html || emailData.email_html || '';
+            }
             
             if (emailHtml) {
               setCurrentEmail({
                 ...emailData,
-                html: emailHtml
+                html: emailHtml,
+                email_json: emailData.email_json // Store the JSON for editing
               });
               setCurrentEmailHtml(emailHtml);
               lastEmailLoaded = true;
@@ -243,7 +280,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         ? (currentEmailHtml ? 'update' : 'create')
         : intentAnalysis.intent;
         
-      setGenerationType(emailType);
       
       // Import API function
       // Use apiClient for API calls with automatic token refresh
@@ -271,30 +307,8 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         }
       }
       
-      // Step 2: Add user message to conversation
-      if (conversationId) {
-        setGenerationProgress('Gathering Email Requirements...');
-        
-        const messageResponse = await apiClient.fetchWithAuth(`ai/conversations/${conversationId}/messages`, {
-          method: 'POST',
-          body: JSON.stringify({
-            message_content: prompt,
-            message_role: 'user',
-            message_type: 'text',
-            metadata: {
-              email_type: 'create',
-              user_prompt: prompt
-            }
-          })
-        });
-        
-        const messageData = await messageResponse.json();
-        
-        if (!messageResponse.ok || !messageData.success) {
-          console.warn('⚠️ Failed to add message to conversation:', messageData);
-        } 
-
-      }
+      // Step 2: User message will be automatically stored by the AI handler
+      // No need to manually store it here as _store_ai_message handles both user and AI messages
       
       // Step 3: Generate email (this will also store the AI response)
       setTimeout(() => setGenerationProgress('Connecting to AI...'), 500);
@@ -315,11 +329,30 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       const response = await emailResponse.json();
       
       if (emailResponse.ok && response.success && response.data) {
+        // Handle new JSON format from AI
+        let emailHtml = '';
+        if (response.data.subject && response.data.blocks) {
+          // New JSON format - convert to HTML
+          try {
+            emailHtml = emailConverter.jsonToHtml(response.data);
+            console.log('✅ [DashboardLayout] Converted generated email JSON to HTML');
+          } catch (error) {
+            console.error('❌ [DashboardLayout] Failed to convert generated JSON to HTML:', error);
+            // Fallback to legacy fields if available
+            emailHtml = response.data.email_html || response.data.updated_email_html || '';
+          }
+        } else {
+          // Legacy HTML format
+          emailHtml = response.data.email_html || response.data.updated_email_html || '';
+        }
+
         const emailData = {
           message_id: response.data.message_id, // ✅ Add message_id for backend sync
-          subject: response.data.email_subject,
-          html: response.data.email_html || response.data.updated_email_html,
-          preheader: response.data.preheader_text,
+          subject: response.data.subject || response.data.email_subject,
+          html: emailHtml,
+          preheader: response.data.preheader || response.data.preheader_text,
+          email_json: response.data.subject && response.data.blocks ? response.data : null, // Store JSON if available
+          // Legacy fields for backward compatibility
           features: response.data.key_features || [],
           designNotes: response.data.design_notes,
           colorPalette: response.data.color_palette || [],
@@ -335,7 +368,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         setCurrentEmail(emailData);
         
         // Update current email HTML for future updates
-        setCurrentEmailHtml(emailData.html);
+        setCurrentEmailHtml(emailHtml);
         
         // Update conversation history
         const newMessage = {
@@ -389,22 +422,35 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     setShowExportDialog(true);
   };
 
-  // Handle export with options
+  // Handle export with options - uses current local state HTML
   const handleExportWithOptions = async (options: any) => {
+    // Get HTML from current local state (not from backend)
+    const exportHtml = getExportHtml ? getExportHtml() : currentEmail?.html;
+    
+    if (!exportHtml) {
+      showError('No email content to export');
+      return;
+    }
+
     try {
+      console.log('📤 Exporting email using current local state HTML');
+      
       if (options.format === 'html-with-metadata') {
         // Export both HTML and metadata
-        downloadHtmlFile(currentEmail.html, {
+        downloadHtmlFile(exportHtml, {
           filename: options.filename,
           includeStyles: options.includeStyles,
           format: 'html'
         });
         
-        // Also export metadata
-        exportEmailWithMetadata(currentEmail);
+        // Also export metadata (use current email data with local HTML)
+        exportEmailWithMetadata({
+          ...currentEmail,
+          html: exportHtml // Use current local state HTML
+        });
       } else {
         // Export HTML only
-        downloadHtmlFile(currentEmail.html, {
+        downloadHtmlFile(exportHtml, {
           filename: options.filename,
           includeStyles: options.includeStyles,
           format: 'html'
@@ -421,6 +467,353 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   const handleTemplateSelect = (template: any) => {
     setCurrentEmail(template);
     setShowTemplateGallery(false);
+  };
+
+  const prepareEmailForSending = (htmlContent?: string): string => {
+    // Use provided HTML or get from current local state
+    const emailHtml = htmlContent || (getExportHtml ? getExportHtml() : currentEmail?.html) || '';
+    
+    if (!emailHtml) {
+      throw new Error('No email content available for sending');
+    }
+    // Use the same preparation logic as export
+    let exportHtml = emailHtml;
+    
+    // Add DOCTYPE if missing
+    if (!exportHtml.trim().toLowerCase().startsWith('<!doctype')) {
+      exportHtml = '<!DOCTYPE html>\n' + exportHtml;
+    }
+    
+    // Parse the HTML with DOCTYPE
+    const parser = new DOMParser();
+    const finalDoc = parser.parseFromString(exportHtml, 'text/html');
+    
+    // Add meta tags if missing
+    const head = finalDoc.querySelector('head');
+    if (head) {
+      // Add charset if missing
+      if (!head.querySelector('meta[charset]')) {
+        const charsetMeta = finalDoc.createElement('meta');
+        charsetMeta.setAttribute('charset', 'UTF-8');
+        head.insertBefore(charsetMeta, head.firstChild);
+      }
+      
+      // Add viewport if missing
+      if (!head.querySelector('meta[name="viewport"]')) {
+        const viewportMeta = finalDoc.createElement('meta');
+        viewportMeta.setAttribute('name', 'viewport');
+        viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+        head.appendChild(viewportMeta);
+      }
+      
+      // Add title if missing
+      if (!head.querySelector('title')) {
+        const title = finalDoc.createElement('title');
+        title.textContent = currentEmail?.subject || 'Email Template - Untitled88';
+        head.appendChild(title);
+      }
+      
+      // Add email client compatibility styles
+      const emailStyles = finalDoc.createElement('style');
+      emailStyles.textContent = getEmailCompatibilityStyles();
+      head.appendChild(emailStyles);
+    }
+    
+    // Remove any data-block attributes for clean export
+    const blockElements = finalDoc.querySelectorAll('[data-block-id], [data-block-type]');
+    blockElements.forEach(element => {
+      element.removeAttribute('data-block-id');
+      element.removeAttribute('data-block-type');
+    });
+    
+    // Return the cleaned HTML
+    return finalDoc.documentElement.outerHTML;
+  };
+
+  const getEmailCompatibilityStyles = (): string => {
+    return `
+      /* Email Client Compatibility Styles */
+      body {
+        margin: 0;
+        padding: 0;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      
+      table {
+        border-collapse: collapse;
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      
+      img {
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+        -ms-interpolation-mode: bicubic;
+      }
+      
+      /* Outlook specific styles */
+      .ExternalClass {
+        width: 100%;
+      }
+      
+      .ExternalClass,
+      .ExternalClass p,
+      .ExternalClass span,
+      .ExternalClass font,
+      .ExternalClass td,
+      .ExternalClass div {
+        line-height: 100%;
+      }
+      
+      /* Mobile styles */
+      @media only screen and (max-width: 600px) {
+        table[class="main"] {
+          width: 100% !important;
+        }
+        
+        td[class="mobile-padding"] {
+          padding: 20px !important;
+        }
+        
+        img[class="mobile-image"] {
+          width: 100% !important;
+          height: auto !important;
+        }
+      }
+    `;
+  };
+
+  const handleSendTestEmail = () => {
+    setShowTestEmailDialog(true);
+  };
+
+  const handleTestEmailSend = (success: boolean, message: string) => {
+    setTestEmailMessage({
+      type: success ? 'success' : 'error',
+      message
+    });
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      setTestEmailMessage(null);
+    }, 5000);
+  };
+
+  // Handle share email - generate link first, then show dialog
+  const handleShareEmail = async () => {
+    console.log('🚀 handleShareEmail called!', {
+      hasCurrentEmail: !!currentEmail,
+      hasHtml: !!currentEmail?.html,
+      emailSubject: currentEmail?.subject
+    });
+
+    if (!currentEmail || !currentEmail.html) {
+      console.log('❌ No email to share');
+      showError('No email to share. Please generate an email first.');
+      return;
+    }
+
+    try {
+      setIsCreatingShare(true); // Start loading state
+      console.log('🔗 Creating shareable link first...');
+      
+      // Get the current email data
+      const emailHtml = getExportHtml ? getExportHtml() : currentEmail.html;
+      const emailJson = currentEmail.email_json || {};
+      const emailSubject = currentEmail.subject || 'Untitled Email';
+      
+      console.log('📧 Sharing email data:', {
+        hasHtml: !!emailHtml,
+        hasJson: !!emailJson,
+        jsonType: typeof emailJson,
+        jsonKeys: Object.keys(emailJson || {}),
+        subject: emailSubject
+      });
+      
+      // Use the existing API client for consistency
+      console.log('📡 Making API call to share/create...');
+      const response = await apiClient.fetchWithAuth('share/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          email_html: emailHtml,
+          email_json: emailJson,
+          email_subject: emailSubject,
+        }),
+      });
+
+      console.log('📥 API response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Share API error:', response.status, errorText);
+        showError(`Failed to share email: ${response.status} ${response.statusText}`);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('📊 API response data:', data);
+
+      if (data.success) {
+        // Construct full URL from the shareable_link suffix using current host
+        const currentOrigin = window.location.origin; // Gets protocol + host + port
+        const shareableUrl = `${currentOrigin}${data.shareable_link}`;
+        
+        console.log('🔗 Constructing full URL:', {
+          origin: currentOrigin,
+          suffix: data.shareable_link,
+          fullUrl: shareableUrl
+        });
+        
+        setShareableLink(shareableUrl);
+        
+        // Open dialog only after link is set
+        console.log('🎯 Opening dialog with link ready');
+        setShowShareDialog(true);
+        
+        showSuccess('Shareable link created successfully!');
+        
+        console.log('✅ Email shared successfully:', {
+          shareable_id: data.shareable_id,
+          shareable_link: data.shareable_link,
+          full_url: shareableUrl,
+          dialog_opened: true
+        });
+      } else {
+        console.error('❌ API returned error:', data.error);
+        showError(data.error || 'Failed to share email');
+      }
+    } catch (error) {
+      console.error('❌ Error sharing email:', error);
+      showError('Failed to share email. Please try again.');
+    } finally {
+      setIsCreatingShare(false); // Stop loading state
+    }
+  };
+
+  // Handle creating a new shareable link
+  const handleCreateShareLink = async () => {
+    if (!currentEmail || !currentEmail.html) {
+      showError('No email to share. Please generate an email first.');
+      return;
+    }
+
+    try {
+      setIsCreatingShareLink(true);
+      console.log('🔗 Creating shareable link...');
+      
+      // Get the current email data
+      const emailHtml = getExportHtml ? getExportHtml() : currentEmail.html;
+      const emailJson = currentEmail.email_json || {};
+      const emailSubject = currentEmail.subject || 'Untitled Email';
+      
+      console.log('📧 Sharing email data:', {
+        hasHtml: !!emailHtml,
+        hasJson: !!emailJson,
+        jsonType: typeof emailJson,
+        jsonKeys: Object.keys(emailJson || {}),
+        subject: emailSubject
+      });
+      
+      // Use the existing API client for consistency
+      const response = await apiClient.fetchWithAuth('share/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          email_html: emailHtml,
+          email_json: emailJson,
+          email_subject: emailSubject,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Share API error:', response.status, errorText);
+        showError(`Failed to share email: ${response.status} ${response.statusText}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Set the shareable link in state
+        const shareableUrl = data.full_url;
+        setShareableLink(shareableUrl);
+        
+        showSuccess('Shareable link created successfully!');
+        
+        console.log('✅ Email shared successfully:', {
+          shareable_id: data.shareable_id,
+          shareable_link: data.shareable_link,
+          full_url: data.full_url
+        });
+      } else {
+        showError(data.error || 'Failed to share email');
+      }
+    } catch (error) {
+      console.error('❌ Error sharing email:', error);
+      showError('Failed to share email. Please try again.');
+    } finally {
+      setIsCreatingShareLink(false);
+    }
+  };
+
+  // Handle save email
+  const handleSaveEmail = async () => {
+    if (!currentEmail?.message_id) {
+      console.warn('No email to save');
+      return;
+    }
+
+    try {
+      console.log('💾 Saving email to database...');
+      
+      // Get the current email JSON structure
+      let emailJson = currentEmail.email_json;
+      
+      if (!emailJson) {
+        // If no JSON available, try to convert from HTML (legacy support)
+        const currentHtml = getExportHtml ? getExportHtml() : currentEmail.html;
+        if (currentHtml) {
+          try {
+            emailJson = emailConverter.htmlToJson(currentHtml);
+            console.log('✅ Converted HTML to JSON for saving');
+          } catch (error) {
+            console.error('❌ Failed to convert HTML to JSON:', error);
+            throw new Error('Unable to save email: conversion failed');
+          }
+        } else {
+          throw new Error('No email content to save');
+        }
+      }
+
+      // Use the correct API endpoint for updating email content
+      const result = await updateEmailContent(
+        currentEmail.message_id,
+        emailJson,
+        'Manual save from dashboard'
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save email');
+      }
+
+      console.log('✅ Email saved successfully:', result);
+      
+      // Show success message
+      showSuccess('Email saved successfully');
+      
+    } catch (error) {
+      console.error('❌ Failed to save email:', error);
+      showError(error instanceof Error ? error.message : 'Failed to save email');
+      throw error; // Re-throw so the UI can handle the error state
+    }
   };
 
   // Loading state
@@ -442,10 +835,14 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       <DashboardNavbar 
         user={session.user}
         onTemplateGallery={() => setShowTemplateGallery(true)}
-        onSave={() => console.log('Save email')}
+        onSave={handleSaveEmail}
         onExport={handleExportEmail}
-        onShare={() => console.log('Share email')}
+        onShare={handleShareEmail}
+        onSendTestEmail={handleSendTestEmail}
         currentEmail={currentEmail}
+        hasPendingChanges={hasPendingChanges}
+        pendingChangesCount={pendingChangesCount}
+        isCreatingShare={isCreatingShare}
       />
 
       {/* Main Content Area */}
@@ -480,24 +877,39 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                     messageId: emailData.message_id,
                     subject: emailData.subject
                   });
-                  setCurrentEmail(emailData);
-                  setCurrentEmailHtml(emailData.html);
+                  
+                  // Convert from JSON to HTML if needed
+                  let emailHtml = emailData.html;
+                  if (emailData.email_json && !emailHtml) {
+                    try {
+                      emailHtml = emailConverter.jsonToHtml(emailData.email_json);
+                      console.log('✅ [DashboardLayout] Converted selected email JSON to HTML');
+                    } catch (error) {
+                      console.error('❌ [DashboardLayout] Failed to convert selected email JSON to HTML:', error);
+                      emailHtml = '';
+                    }
+                  }
+                  
+                  setCurrentEmail({
+                    ...emailData,
+                    html: emailHtml
+                  });
+                  setCurrentEmailHtml(emailHtml);
                 }}
                 conversationHistory={conversationHistory}
               />
             </div>
 
-            {/* Right Preview Panel - 75% */}
+            {/* Right JSON Email Editor - 75% */}
             <div className="flex-1 flex flex-col">
-              <PreviewPanel
+              <SimpleJsonEmailEditor
                 email={currentEmail}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
-                isGenerating={isGenerating}
-                generationProgress={generationProgress}
-                generationType={generationType}
+                isUpdating={isGenerating}
+                updateProgress={generationProgress}
                 onEmailUpdate={(updatedHtml) => {
-                  // Update the current email with new HTML
+                  // Update the current email with new HTML (for preview)
                   if (currentEmail) {
                     setCurrentEmail({
                       ...currentEmail,
@@ -505,6 +917,15 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                     });
                     setCurrentEmailHtml(updatedHtml);
                   }
+                }}
+                onExportHtmlReady={(getHtmlFunction) => {
+                  // Store the export function for immediate access to local state
+                  console.log('📤 Export function ready from SimpleJsonEmailEditor');
+                  setGetExportHtml(() => getHtmlFunction);
+                }}
+                onPendingChangesUpdate={(hasPending, count) => {
+                  setHasPendingChanges(hasPending);
+                  setPendingChangesCount(count);
                 }}
               />
             </div>
@@ -526,10 +947,80 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         onClose={() => setShowExportDialog(false)}
         onExport={handleExportWithOptions}
         email={currentEmail}
+        getHtmlContent={getExportHtml || undefined}
       />
 
+      {/* Send Test Email Dialog */}
+      <SendTestEmailDialog
+        isOpen={showTestEmailDialog}
+        onClose={() => setShowTestEmailDialog(false)}
+        email={currentEmail}
+        onSend={handleTestEmailSend}
+        prepareEmailHtml={prepareEmailForSending}
+      />
+
+      {/* Share Dialog */}
+      <ShareDialog
+        isOpen={showShareDialog}
+        onClose={() => {
+          setShowShareDialog(false);
+          setShareableLink(''); // Clear link when closing
+        }}
+        emailSubject={currentEmail?.subject || 'Untitled Email'}
+        shareableLink={shareableLink}
+        onCreateNewLink={handleCreateShareLink}
+        isCreatingLink={false}
+      />
+
+      {/* Test Email Success/Error Message */}
+      {testEmailMessage && (
+        <div className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-lg shadow-lg ${
+          testEmailMessage.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-start space-x-3">
+            <svg className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+              testEmailMessage.type === 'success' ? 'text-green-500' : 'text-red-500'
+            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {testEmailMessage.type === 'success' ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              )}
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium">
+                {testEmailMessage.type === 'success' ? 'Email Sent!' : 'Send Failed'}
+              </p>
+              <p className="text-sm mt-1">{testEmailMessage.message}</p>
+            </div>
+            <button
+              onClick={() => setTestEmailMessage(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+          <div className="flex items-center space-x-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>{successMessage}</span>
+          </div>
+        </div>
+      )}
+
       {/* Error Dialog */}
-      <ErrorDialog
+      <ErrorDialog 
         isOpen={errorDialogOpen}
         message={errorMessage}
         onClose={hideError}
