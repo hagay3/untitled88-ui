@@ -430,37 +430,17 @@ export default function SharePage() {
             
             {/* Email HTML Content */}
             <div className="p-6">
-              <div 
-                className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white"
-                style={{ minHeight: '600px' }}
-              >
-                <iframe
-                  srcDoc={`
-                    <!DOCTYPE html>
-                    <html>
-                      <head>
-                        <meta charset="utf-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1">
-                        <style>
-                          body { 
-                            margin: 0; 
-                            padding: 0; 
-                            background-color: white !important; 
-                            font-family: Arial, sans-serif;
-                          }
-                          * { 
-                            box-sizing: border-box; 
-                          }
-                        </style>
-                      </head>
-                      <body>
-                        ${convertedHtml || sharedEmail.email_html}
-                      </body>
-                    </html>
-                  `}
-                  className="w-full h-full bg-white"
-                  style={{ minHeight: '600px', border: 'none', backgroundColor: 'white' }}
-                  title="Email Preview"
+              <div className="w-full border border-gray-200 rounded-lg bg-white">
+                <div 
+                  className="w-full bg-white p-4"
+                  style={{
+                    fontFamily: 'Arial, sans-serif',
+                    lineHeight: '1.6',
+                    color: '#000000'
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: convertedHtml || sharedEmail.email_html
+                  }}
                 />
               </div>
             </div>
