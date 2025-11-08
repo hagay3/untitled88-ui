@@ -73,7 +73,7 @@ export default function DashboardNavbar({
           />
           <div className="h-6 w-px bg-gray-300" />
           <h1 className="text-lg font-semibold text-gray-900">
-            {currentEmail?.subject || currentEmail?.message_subject || 'Untitled88 | Dashboard'}
+            Untitled88 | Dashboard
           </h1>
         </div>
 

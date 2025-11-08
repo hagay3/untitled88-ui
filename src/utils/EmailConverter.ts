@@ -238,6 +238,18 @@ export class EmailConverter {
   private parseButtonBlock(element: Element, id: string, orderId: number, styles: BlockStyles): ButtonBlock {
     const link = element.querySelector('a');
     
+    // Extract background color from button styles
+    let backgroundColor: string | undefined = undefined;
+    if (link) {
+      const linkStyle = link.getAttribute('style');
+      if (linkStyle) {
+        const bgMatch = linkStyle.match(/background-color\s*:\s*([^;]+)/i);
+        if (bgMatch) {
+          backgroundColor = bgMatch[1].trim();
+        }
+      }
+    }
+    
     return {
       id,
       blockType: 'button',
@@ -247,6 +259,7 @@ export class EmailConverter {
         text: link?.textContent?.trim() || '',
         url: link?.getAttribute('href') || '#',
         buttonStyle: 'primary', // Default style
+        backgroundColor: backgroundColor
       }
     };
   }
@@ -469,8 +482,9 @@ export class EmailConverter {
       <td style="${this.stylesToCss(block.styles)}">
         ${block.content.imageUrl 
           ? `<img src="${block.content.imageUrl}" alt="${block.content.imageAlt || ''}" 
-             ${block.content.imageWidth ? `width="${block.content.imageWidth}"` : ''}
-             ${block.content.imageHeight ? `height="${block.content.imageHeight}"` : ''} />`
+             width="${block.content.imageWidth || 200}" 
+             height="${block.content.imageHeight || 80}" 
+             style="max-width: 200px; max-height: 80px; height: auto; display: block; margin: 0 auto;" />`
           : `<h1 style="margin: 0; font-size: 32px; font-weight: bold; line-height: 1.2;">${block.content.text || 'Company Name'}</h1>`
         }
       </td>
@@ -514,10 +528,41 @@ export class EmailConverter {
   }
   
   private buttonBlockToHtml(block: ButtonBlock): string {
+    // Determine button background color based on style or custom color
+    let backgroundColor = '#3B82F6'; // Default primary blue
+    
+    if (block.content.backgroundColor) {
+      backgroundColor = block.content.backgroundColor;
+    } else {
+      // Use predefined colors based on buttonStyle
+      switch (block.content.buttonStyle) {
+        case 'primary':
+          backgroundColor = '#3B82F6';
+          break;
+        case 'secondary':
+          backgroundColor = '#6B7280';
+          break;
+        case 'outline':
+        case 'ghost':
+          backgroundColor = 'transparent';
+          break;
+        default:
+          backgroundColor = '#3B82F6';
+      }
+    }
+    
+    // Determine text color based on background
+    const textColor = backgroundColor === 'transparent' ? '#3B82F6' : '#FFFFFF';
+    
+    // Determine border style
+    const borderStyle = block.content.buttonStyle === 'outline' ? '2px solid #3B82F6' : 
+                       block.content.buttonStyle === 'ghost' ? '2px solid transparent' :
+                       `2px solid ${backgroundColor}`;
+    
     return `<tr data-block-id="${block.id}" data-block-type="button">
       <td style="${this.stylesToCss(block.styles)}">
         <div style="display: inline-block;">
-          <a href="${block.content.url}" style="display: inline-block; padding: 12px 24px; background-color: #3B82F6; color: white; text-decoration: none; border-radius: 6px; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">
+          <a href="${block.content.url}" style="display: inline-block; padding: 12px 24px; background-color: ${backgroundColor}; color: ${textColor}; text-decoration: none; border-radius: 6px; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; border: ${borderStyle};">
             ${block.content.text}
           </a>
         </div>

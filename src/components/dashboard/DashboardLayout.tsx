@@ -202,12 +202,9 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
               try {
                 emailHtml = emailConverter.jsonToHtml(emailData.email_json);
               } catch (error) {
-                // Fallback to legacy HTML if conversion fails
-                emailHtml = emailData.html || emailData.updated_email_html || emailData.email_html || '';
+                // JSON conversion failed - no HTML available
+                emailHtml = '';
               }
-            } else {
-              // Legacy HTML format
-              emailHtml = emailData.html || emailData.updated_email_html || emailData.email_html || '';
             }
             
             if (emailHtml) {
@@ -306,7 +303,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         body: JSON.stringify({
           user_prompt: prompt,
           email_type: emailType,
-          existing_email_html: emailType === 'update' ? currentEmailHtml : undefined
+          existing_email_json: emailType === 'update' ? currentEmail?.email_json : undefined
         })
       });
       
@@ -321,11 +318,10 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
             emailHtml = emailConverter.jsonToHtml(response.data);
           } catch (error) {
             // Fallback to legacy fields if available
-            emailHtml = response.data.email_html || response.data.updated_email_html || '';
+            emailHtml = '';
           }
         } else {
-          // Legacy HTML format
-          emailHtml = response.data.email_html || response.data.updated_email_html || '';
+          emailHtml = '';
         }
 
         const emailData = {
@@ -333,16 +329,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           subject: response.data.subject || response.data.email_subject,
           html: emailHtml,
           preheader: response.data.preheader || response.data.preheader_text,
-          email_json: response.data.subject && response.data.blocks ? response.data : null, // Store JSON if available
-          // Legacy fields for backward compatibility
-          features: response.data.key_features || [],
-          designNotes: response.data.design_notes,
-          colorPalette: response.data.color_palette || [],
-          fontsUsed: response.data.fonts_used || [],
-          accessibilityFeatures: response.data.accessibility_features || [],
-          compatibilityNotes: response.data.compatibility_notes,
-          estimatedSize: response.data.estimated_size_kb,
-          mobileOptimized: response.data.mobile_optimized
+          email_json: response.data.subject && response.data.blocks ? response.data : null,
         };
         
         
@@ -609,7 +596,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
 
 
       if (!response.ok) {
-        const errorText = await response.text();
         showError(`Failed to share email: ${response.status} ${response.statusText}`);
         return;
       }
@@ -647,7 +633,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     }
 
     try {
-      setIsCreatingShareLink(true);
+      setIsCreatingShare(true);
       
       // Get the current email data
       const emailHtml = getExportHtml ? getExportHtml() : currentEmail.html;
@@ -666,7 +652,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         showError(`Failed to share email: ${response.status} ${response.statusText}`);
         return;
       }
@@ -686,7 +671,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     } catch (error) {
       showError('Failed to share email. Please try again.');
     } finally {
-      setIsCreatingShareLink(false);
+      setIsCreatingShare(false);
     }
   };
 
@@ -702,17 +687,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       let emailJson = currentEmail.email_json;
       
       if (!emailJson) {
-        // If no JSON available, try to convert from HTML (legacy support)
-        const currentHtml = getExportHtml ? getExportHtml() : currentEmail.html;
-        if (currentHtml) {
-          try {
-            emailJson = emailConverter.htmlToJson(currentHtml);
-          } catch (error) {
-            throw new Error('Unable to save email: conversion failed');
-          }
-        } else {
-          throw new Error('No email content to save');
-        }
+        return;
       }
 
       // Use the correct API endpoint for updating email content
@@ -838,6 +813,24 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                 onPendingChangesUpdate={(hasPending, count) => {
                   setHasPendingChanges(hasPending);
                   setPendingChangesCount(count);
+                }}
+                emailHistory={conversationHistory}
+                onEmailSelect={(emailData) => {
+                  // Convert from JSON to HTML if needed
+                  let emailHtml = emailData.html;
+                  if (emailData.email_json && !emailHtml) {
+                    try {
+                      emailHtml = emailConverter.jsonToHtml(emailData.email_json);
+                    } catch (error) {
+                      emailHtml = '';
+                    }
+                  }
+                  
+                  setCurrentEmail({
+                    ...emailData,
+                    html: emailHtml
+                  });
+                  setCurrentEmailHtml(emailHtml);
                 }}
               />
             </div>

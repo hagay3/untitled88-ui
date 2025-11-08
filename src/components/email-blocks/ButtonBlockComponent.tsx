@@ -27,6 +27,7 @@ export const ButtonBlockComponent: React.FC<ButtonBlockComponentProps> = ({
   const [editingText, setEditingText] = useState(block.content.text);
   const [editingUrl, setEditingUrl] = useState(block.content.url);
   const [editingStyle, setEditingStyle] = useState(block.content.buttonStyle || 'primary');
+  const [editingBackgroundColor, setEditingBackgroundColor] = useState(block.content.backgroundColor || '');
 
   const handleButtonSave = () => {
     onUpdate?.(block.id, {
@@ -35,7 +36,8 @@ export const ButtonBlockComponent: React.FC<ButtonBlockComponentProps> = ({
         ...block.content,
         text: editingText,
         url: editingUrl,
-        buttonStyle: editingStyle
+        buttonStyle: editingStyle,
+        backgroundColor: editingBackgroundColor || undefined
       }
     });
     setShowButtonEditor(false);
@@ -71,9 +73,20 @@ export const ButtonBlockComponent: React.FC<ButtonBlockComponentProps> = ({
       }
     };
 
+    const defaultStyle = styleVariants[block.content.buttonStyle || 'primary'];
+    
+    // Override with custom background color if provided
+    const finalStyle = {
+      ...defaultStyle,
+      ...(block.content.backgroundColor && {
+        backgroundColor: block.content.backgroundColor,
+        border: `2px solid ${block.content.backgroundColor}`
+      })
+    };
+
     return {
       ...baseStyles,
-      ...styleVariants[block.content.buttonStyle || 'primary'],
+      ...finalStyle,
       display: 'inline-block',
       padding: '12px 24px',
       textDecoration: 'none',
@@ -178,6 +191,36 @@ export const ButtonBlockComponent: React.FC<ButtonBlockComponentProps> = ({
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Custom Background Color (Optional)
+                  </label>
+                  <input
+                    type="color"
+                    value={editingBackgroundColor || '#3B82F6'}
+                    onChange={(e) => setEditingBackgroundColor(e.target.value)}
+                    className="w-full h-10 px-1 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="flex items-center mt-2">
+                    <input
+                      type="checkbox"
+                      id="useCustomColor"
+                      checked={!!editingBackgroundColor}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          setEditingBackgroundColor('');
+                        } else {
+                          setEditingBackgroundColor('#3B82F6');
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <label htmlFor="useCustomColor" className="text-sm text-gray-600">
+                      Use custom color (overrides button style)
+                    </label>
+                  </div>
+                </div>
+
                 {/* Preview */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -187,13 +230,16 @@ export const ButtonBlockComponent: React.FC<ButtonBlockComponentProps> = ({
                     <span
                       style={{
                         ...getButtonStyles(),
-                        backgroundColor: editingStyle === 'primary' ? '#3B82F6' : 
-                                       editingStyle === 'secondary' ? '#6B7280' : 
-                                       'transparent',
-                        color: editingStyle === 'outline' || editingStyle === 'ghost' ? '#3B82F6' : '#FFFFFF',
-                        border: editingStyle === 'ghost' ? '2px solid transparent' : 
-                               editingStyle === 'outline' ? '2px solid #3B82F6' : 
-                               `2px solid ${editingStyle === 'primary' ? '#3B82F6' : '#6B7280'}`
+                        backgroundColor: editingBackgroundColor || 
+                                       (editingStyle === 'primary' ? '#3B82F6' : 
+                                        editingStyle === 'secondary' ? '#6B7280' : 
+                                        'transparent'),
+                        color: (editingBackgroundColor && editingBackgroundColor !== 'transparent') ? '#FFFFFF' :
+                               (editingStyle === 'outline' || editingStyle === 'ghost' ? '#3B82F6' : '#FFFFFF'),
+                        border: editingBackgroundColor ? `2px solid ${editingBackgroundColor}` :
+                               (editingStyle === 'ghost' ? '2px solid transparent' : 
+                                editingStyle === 'outline' ? '2px solid #3B82F6' : 
+                                `2px solid ${editingStyle === 'primary' ? '#3B82F6' : '#6B7280'}`)
                       }}
                     >
                       {editingText || 'Button Text'}

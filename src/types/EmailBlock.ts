@@ -106,6 +106,7 @@ export interface ButtonBlock extends BaseEmailBlock {
     text: string;
     url: string;
     buttonStyle?: 'primary' | 'secondary' | 'outline' | 'ghost';
+    backgroundColor?: string; // Custom button background color
   };
 }
 

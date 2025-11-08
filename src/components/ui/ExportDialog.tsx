@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { Button } from './button';
+import { apiClient } from '@/utils/apiClient';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -26,35 +27,84 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
   });
   
   const [copyJsonSuccess, setCopyJsonSuccess] = useState(false);
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
 
   const handleExport = () => {
     onExport(options);
     onClose();
   };
 
-  const handlePreviewInNewWindow = () => {
-    if (!getHtmlContent) {
+  const handlePreviewInNewWindow = async () => {
+    if (!getHtmlContent || !email) {
       return;
     }
 
     try {
-      // Get the current HTML content
-      const htmlContent = getHtmlContent();
+      setIsCreatingShareLink(true);
       
-      if (!htmlContent) {
+      // Get the current email data
+      const emailHtml = getHtmlContent();
+      const emailJson = email.email_json || {};
+      const emailSubject = email.subject || 'Untitled Email';
+      
+      if (!emailHtml) {
         return;
       }
 
-      // Create a new window and write the HTML content
-      const previewWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+      // Create a share link using the same API as ShareDialog
+      const response = await apiClient.fetchWithAuth('share/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          email_html: emailHtml,
+          email_json: emailJson,
+          email_subject: emailSubject,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to create share link: ${response.status} ${response.statusText}`);
+        return;
+      }
+
+      const data = await response.json();
       
-      if (previewWindow) {
-        previewWindow.document.write(htmlContent);
-        previewWindow.document.close();
-        previewWindow.focus();
+      console.log('Share API response:', data); // Debug log
+      
+      if (data.success) {
+        // Get the relative path from response and add current host/port prefix
+        let shareableUrl = null;
+        
+        if (data.shareable_link) {
+          // Add current host and port to the relative path
+          const baseUrl = window.location.origin; // Gets http://localhost:3000 or production domain
+          shareableUrl = `${baseUrl}${data.shareable_link}`;
+          console.log('Constructed full URL:', shareableUrl);
+        } else if (data.shareable_id) {
+          // Fallback: construct from shareable_id
+          const baseUrl = window.location.origin;
+          shareableUrl = `${baseUrl}/share/${data.shareable_id}`;
+          console.log('Constructed URL from shareable_id:', shareableUrl);
+        }
+        
+        console.log('Final share URL:', shareableUrl); // Debug log
+        
+        if (shareableUrl) {
+          // Open the share link in a new tab
+          window.open(shareableUrl, '_blank');
+        } else {
+          console.error('No valid URL found in response:', data);
+        }
       } else {
+        console.error('Failed to create share link:', data);
+        console.error('Response data keys:', Object.keys(data));
+        console.error('Success value:', data.success);
+        console.error('Full URL value:', data.full_url);
+        console.error('Share ID value:', data.share_id);
       }
     } catch (error) {
+      console.error('Error creating share link:', error);
+    } finally {
+      setIsCreatingShareLink(false);
     }
   };
 
@@ -122,12 +172,25 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
                 <Button
                   variant="outline"
                   onClick={handlePreviewInNewWindow}
+                  disabled={isCreatingShareLink}
                   className="btn-ghost flex items-center"
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Preview in New Window
+                  {isCreatingShareLink ? (
+                    <>
+                      <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      Preview in New Window
+                    </>
+                  )}
                 </Button>
               )}
               

@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { EmailStructure, EmailBlock } from '@/types/EmailBlock';
 import { emailConverter } from '@/utils/EmailConverter';
 import { updateEmailContent } from '@/lib/api';
+import MyEmailsSidebar from './MyEmailsSidebar';
 import {
   TextBlockComponent,
   ImageBlockComponent,
@@ -27,6 +28,8 @@ interface SimpleJsonEmailEditorProps {
   updateProgress?: string;
   onExportHtmlReady?: (getExportHtml: () => string) => void; // Callback to provide export function
   onPendingChangesUpdate?: (hasPendingChanges: boolean, pendingCount: number) => void; // Callback for pending changes
+  emailHistory?: any[]; // Email history from conversation
+  onEmailSelect?: (emailData: any) => void; // Callback when email is selected from sidebar
 }
 
 interface SimpleBlockProps {
@@ -110,10 +113,10 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
   viewMode,
   onViewModeChange,
   onEmailUpdate,
-  isUpdating = false,
-  updateProgress = '',
   onExportHtmlReady,
-  onPendingChangesUpdate
+  onPendingChangesUpdate,
+  emailHistory = [],
+  onEmailSelect
 }) => {
   // Local state management (immediate, never blocked)
   const [emailStructure, setEmailStructure] = useState<EmailStructure | null>(null);
@@ -121,10 +124,12 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
   const [isEditingText, setIsEditingText] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
+  // My Emails sidebar state
+  const [showMyEmailsSidebar, setShowMyEmailsSidebar] = useState(false);
+  
   // Background sync management (async, non-blocking)
   const [backgroundSyncQueue, setBackgroundSyncQueue] = useState<EmailStructure[]>([]);
   const [isSyncingToBackend, setIsSyncingToBackend] = useState(false);
-  const [lastSyncedStructure, setLastSyncedStructure] = useState<EmailStructure | null>(null);
   const [lastProcessedHtml, setLastProcessedHtml] = useState<string>('');
   
   // Export-ready HTML (generated from current local state)
@@ -145,7 +150,6 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
         // Clear any pending updates when switching emails
         setBackgroundSyncQueue([]);
         setIsSyncingToBackend(false);
-        setLastSyncedStructure(structure);
         // Generate initial export-ready HTML
         const initialHtml = emailConverter.jsonToHtml(structure);
         setExportReadyHtml(initialHtml);
@@ -186,9 +190,6 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
       
       // Sync with backend (this is async and won't block user actions)
       await updateEmailContent(email.message_id, latestStructure, 'Updated via JSON editor');
-      
-      // Update last synced structure
-      setLastSyncedStructure(latestStructure);
       
       // Clear the queue after successful update
       setBackgroundSyncQueue([]);
@@ -424,13 +425,13 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
   const getPreviewStyles = () => {
     if (viewMode === 'mobile') {
       return {
-        width: '375px',
+        width: '450px', // 20% wider than 375px
         height: '667px',
         maxHeight: '80vh'
       };
     }
     return {
-      width: '600px', // Match email template container width
+      width: '720px', // 20% wider than 600px
       height: '100%',
       maxWidth: '100%' // Ensure it doesn't overflow on smaller screens
     };
@@ -506,6 +507,18 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
               </div>
             )}
 
+            {/* My Emails Button */}
+            <button
+              onClick={() => setShowMyEmailsSidebar(true)}
+              className="flex items-center space-x-2 px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              title="View all your generated emails"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>My emails</span>
+            </button>
+
             {/* View Mode Buttons */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
@@ -568,6 +581,19 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
         </div>
 
       </div>
+
+      {/* My Emails Sidebar */}
+      <MyEmailsSidebar
+        isOpen={showMyEmailsSidebar}
+        onClose={() => setShowMyEmailsSidebar(false)}
+        emailHistory={emailHistory}
+        onEmailSelect={(emailData) => {
+          if (onEmailSelect) {
+            onEmailSelect(emailData);
+          }
+        }}
+        currentEmailId={email?.message_id}
+      />
     </div>
   );
 };
