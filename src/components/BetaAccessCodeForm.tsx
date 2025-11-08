@@ -113,7 +113,6 @@ export const BetaAccessCodeForm: React.FC<BetaAccessCodeFormProps> = ({
         inputRefs.current[0]?.focus();
       }
     } catch (err) {
-      console.error('Beta verification error:', err);
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

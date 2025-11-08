@@ -10,6 +10,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import SEO from '@/components/SEO';
 import { BetaWall } from '@/components/BetaWall';
+import { userAPI } from '@/lib/api';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -22,6 +23,13 @@ export default function Dashboard() {
     if (!session) {
       router.push("/login");
       return;
+    }
+
+    // Call subscribe_user API to ensure user is registered/updated
+    if (session?.user?.id) {
+      userAPI.subscribeUser(session.user.id).catch(() => {
+        // Silently handle API errors - don't break the dashboard
+      });
     }
 
     // Check for stored email prompt from homepage

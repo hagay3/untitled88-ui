@@ -58,7 +58,6 @@ export const testDeviceInfoFlow = async (): Promise<LoginTestResult> => {
     
   } catch (error) {
     result.errors.push(`Test error: ${error}`);
-    console.error('❌ Test error:', error);
   }
 
   return result;
@@ -106,7 +105,6 @@ export const testCompleteLoginFlow = async (session: any): Promise<LoginTestResu
     
   } catch (error) {
     result.errors.push(`Complete flow test error: ${error}`);
-    console.error('❌ Complete flow test error:', error);
   }
 
   return result;
@@ -118,6 +116,5 @@ export const testCompleteLoginFlow = async (session: any): Promise<LoginTestResu
 export const displayTestResults = (result: LoginTestResult): void => {
   // Silent by default - only log errors if any
   if (!result.success && result.errors.length > 0) {
-    console.error('Login flow test errors:', result.errors);
   }
 };

@@ -41,9 +41,7 @@ export const downloadHtmlFile = (
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    console.log(`✅ Email exported successfully as ${link.download}`);
   } catch (error) {
-    console.error('❌ Error exporting email:', error);
     throw new Error('Failed to export email. Please try again.');
   }
 };
@@ -234,9 +232,7 @@ export const exportEmailWithMetadata = (email: any): void => {
 export const copyHtmlToClipboard = async (htmlContent: string): Promise<void> => {
   try {
     await navigator.clipboard.writeText(htmlContent);
-    console.log('✅ HTML copied to clipboard');
   } catch (error) {
-    console.error('❌ Failed to copy to clipboard:', error);
     throw new Error('Failed to copy HTML to clipboard');
   }
 };

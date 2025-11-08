@@ -82,14 +82,12 @@ const testSignOutDialog = (): void => {
   if (process.env.NEXT_PUBLIC_TEST_SIGNOUT_DIALOG === 'true') {
     showSignOutDialog("/login");
   } else {
-    console.warn("testSignOutDialog: NEXT_PUBLIC_TEST_SIGNOUT_DIALOG is not enabled");
   }
 };
 
 // Make test function globally available in development and auto-invoke
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TEST_SIGNOUT_DIALOG === 'true') {
   (window as any).testSignOutDialog = testSignOutDialog;
-  console.log("🧪 Test mode enabled: Auto-invoking signout dialog in 2 seconds...");
   
   // Automatically invoke the dialog after a short delay to allow page to load
   setTimeout(() => {
@@ -157,7 +155,6 @@ class SecureApiClient {
         try {
           // Ensure only one refresh attempt at a time
           if (!this.isRefreshing) {
-            console.log('🔄 [ApiClient] Starting new refresh session');
             this.isRefreshing = true;
             this.refreshPromise = this.refreshSession();
           }
@@ -225,7 +222,6 @@ class SecureApiClient {
     
         
         if (refreshData.requiresReauth) {
-          console.log('🚪 [ApiClient] Refresh indicates re-authentication required');
           await showSignOutDialog("/login");
           throw new Error('Token expired, re-authentication required');
         }
@@ -234,7 +230,6 @@ class SecureApiClient {
         
      
         if (errorData.requiresReauth) {
-          console.log('🚪 [ApiClient] Error response indicates re-authentication required');
           await showSignOutDialog("/login");
           throw new Error('Token expired, re-authentication required');
         }
@@ -248,7 +243,6 @@ class SecureApiClient {
  
       
       if (!newSession?.user?.accessToken) {
-        console.error('❌ [ApiClient] No access token after refresh');
         await showSignOutDialog("/login");
         throw new Error('No access token after refresh');
       }

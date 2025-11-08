@@ -38,24 +38,16 @@ export default function SharePage() {
         setError(null);
 
         const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/share/${id}`;
-        console.log('🔍 Fetching shared email from:', apiUrl);
         
         const response = await fetch(apiUrl);
-        console.log('📥 Share API response:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok
-        });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('❌ Share API error:', response.status, errorText);
           setError(`Failed to load shared email: ${response.status} ${response.statusText}`);
           return;
         }
 
         const data = await response.json();
-        console.log('📊 Share API data:', data);
 
         if (data.success) {
           const emailData = data.shared_email;
@@ -67,29 +59,23 @@ export default function SharePage() {
             
             if (emailData.email_json && typeof emailData.email_json === 'object') {
               // Convert JSON structure to HTML using EmailConverter
-              console.log('🔄 Converting email JSON to HTML for display');
               htmlToDisplay = emailConverter.jsonToHtml(emailData.email_json);
-              console.log('✅ Successfully converted JSON to HTML');
             } else if (emailData.email_json && typeof emailData.email_json === 'string') {
               // Parse JSON string first, then convert
               try {
                 const parsedJson = JSON.parse(emailData.email_json);
                 htmlToDisplay = emailConverter.jsonToHtml(parsedJson);
-                console.log('✅ Successfully parsed and converted JSON string to HTML');
               } catch (parseError) {
-                console.error('❌ Failed to parse JSON string:', parseError);
                 // Fallback to stored HTML
                 htmlToDisplay = emailData.email_html || '';
               }
             } else {
               // Fallback to stored HTML if no valid JSON
-              console.log('⚠️ No valid JSON found, using stored HTML');
               htmlToDisplay = emailData.email_html || '';
             }
             
             setConvertedHtml(htmlToDisplay);
           } catch (conversionError) {
-            console.error('❌ Failed to convert email JSON to HTML:', conversionError);
             // Fallback to stored HTML
             setConvertedHtml(emailData.email_html || '');
           }
@@ -97,7 +83,6 @@ export default function SharePage() {
           setError(data.error || 'Email not found');
         }
       } catch (err) {
-        console.error('Error fetching shared email:', err);
         setError('Failed to load shared email');
       } finally {
         setLoading(false);
@@ -114,6 +99,85 @@ export default function SharePage() {
     } else {
       // User is not logged in, go to beta registration
       router.push('/beta');
+    }
+  };
+
+  const handleExportHtml = () => {
+    if (!sharedEmail) return;
+    
+    // Get the HTML content (prioritize converted HTML from JSON)
+    const htmlContent = convertedHtml || sharedEmail.email_html;
+    
+    // Check if the HTML already has a complete document structure
+    if (htmlContent.trim().toLowerCase().startsWith('<!doctype html')) {
+      // HTML is already a complete document, use it as-is
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${sharedEmail.email_subject || 'email'}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      return;
+    }
+    
+    // If it's just HTML content without document structure, wrap it minimally
+    const fullHtmlDocument = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${sharedEmail.email_subject || 'Email'}</title>
+</head>
+<body style="margin: 0; padding: 0;">
+    ${htmlContent}
+</body>
+</html>`;
+    
+    // Create and download the file
+    const blob = new Blob([fullHtmlDocument], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${sharedEmail.email_subject || 'email'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const [copyJsonSuccess, setCopyJsonSuccess] = useState(false);
+
+  const handleCopyJson = async () => {
+    if (!sharedEmail?.email_json) {
+      return;
+    }
+
+    try {
+      // Get the JSON content
+      let jsonContent = sharedEmail.email_json;
+      
+      // If it's already a string, parse it first to ensure proper formatting
+      if (typeof jsonContent === 'string') {
+        try {
+          jsonContent = JSON.parse(jsonContent);
+        } catch (parseError) {
+          // If parsing fails, use the string as is
+          console.warn('Failed to parse JSON string:', parseError);
+        }
+      }
+      
+      // Format with pretty indentation (4 spaces to match your example)
+      const prettyJsonContent = JSON.stringify(jsonContent, null, 4);
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(prettyJsonContent);
+      setCopyJsonSuccess(true);
+      setTimeout(() => setCopyJsonSuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy JSON:', error);
     }
   };
 
@@ -286,6 +350,40 @@ export default function SharePage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-black">Email Preview</h2>
                 <div className="flex items-center space-x-4">
+                  {/* Export button */}
+                  <button
+                    onClick={handleExportHtml}
+                    className="text-green-600 hover:text-green-700 transition-colors"
+                    title="Export HTML file"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                  
+                  {/* Copy JSON button */}
+                  {sharedEmail?.email_json && (
+                    <button
+                      onClick={handleCopyJson}
+                      className={`transition-colors ${
+                        copyJsonSuccess 
+                          ? 'text-green-700' 
+                          : 'text-purple-600 hover:text-purple-700'
+                      }`}
+                      title="Copy JSON representation"
+                    >
+                      {copyJsonSuccess ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  
                   {/* Share buttons */}
                   <button
                     onClick={() => {
@@ -333,13 +431,35 @@ export default function SharePage() {
             {/* Email HTML Content */}
             <div className="p-6">
               <div 
-                className="w-full border border-gray-200 rounded-lg overflow-hidden"
+                className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white"
                 style={{ minHeight: '600px' }}
               >
                 <iframe
-                  srcDoc={convertedHtml || sharedEmail.email_html}
-                  className="w-full h-full"
-                  style={{ minHeight: '600px', border: 'none' }}
+                  srcDoc={`
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <style>
+                          body { 
+                            margin: 0; 
+                            padding: 0; 
+                            background-color: white !important; 
+                            font-family: Arial, sans-serif;
+                          }
+                          * { 
+                            box-sizing: border-box; 
+                          }
+                        </style>
+                      </head>
+                      <body>
+                        ${convertedHtml || sharedEmail.email_html}
+                      </body>
+                    </html>
+                  `}
+                  className="w-full h-full bg-white"
+                  style={{ minHeight: '600px', border: 'none', backgroundColor: 'white' }}
                   title="Email Preview"
                 />
               </div>

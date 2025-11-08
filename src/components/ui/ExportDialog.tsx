@@ -24,6 +24,8 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
       email.subject.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-').toLowerCase() : 
       'email-template'
   });
+  
+  const [copyJsonSuccess, setCopyJsonSuccess] = useState(false);
 
   const handleExport = () => {
     onExport(options);
@@ -32,7 +34,6 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
 
   const handlePreviewInNewWindow = () => {
     if (!getHtmlContent) {
-      console.warn('No HTML content getter provided');
       return;
     }
 
@@ -41,7 +42,6 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
       const htmlContent = getHtmlContent();
       
       if (!htmlContent) {
-        console.warn('No HTML content available for preview');
         return;
       }
 
@@ -53,10 +53,31 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
         previewWindow.document.close();
         previewWindow.focus();
       } else {
-        console.error('Failed to open preview window. Please check if popups are blocked.');
       }
     } catch (error) {
-      console.error('Error opening preview window:', error);
+    }
+  };
+
+  const handleCopyJson = async () => {
+    if (!email?.email_json) {
+      return;
+    }
+
+    try {
+      // Get the JSON content
+      let jsonContent = email.email_json;
+      
+      // If it's already a string, use it as is, otherwise stringify it
+      if (typeof jsonContent === 'object') {
+        jsonContent = JSON.stringify(jsonContent, null, 2);
+      }
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(jsonContent);
+      setCopyJsonSuccess(true);
+      setTimeout(() => setCopyJsonSuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy JSON:', error);
     }
   };
 
@@ -96,7 +117,7 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
           {/* Action Buttons */}
           <div className="flex justify-between items-center mt-6">
             {/* Preview Button - Left side */}
-            <div>
+            <div className="flex space-x-3">
               {getHtmlContent && (
                 <Button
                   variant="outline"
@@ -109,11 +130,37 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
                   Preview in New Window
                 </Button>
               )}
+              
+              {/* Copy JSON Button */}
+              {email?.email_json && (
+                <Button
+                  variant="outline"
+                  onClick={handleCopyJson}
+                  className={`btn-ghost flex items-center ${
+                    copyJsonSuccess ? 'bg-green-100 text-green-700 border-green-300' : ''
+                  }`}
+                >
+                  {copyJsonSuccess ? (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      JSON Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy JSON
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
             
             {/* Export Button - Right side */}
             <div className="flex space-x-3">
-        
               <Button
                 onClick={handleExport}
                 className="btn-primary"

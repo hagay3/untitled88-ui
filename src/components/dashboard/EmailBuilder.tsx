@@ -64,7 +64,6 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
 
   const handleStyleChange = (property: string, value: string) => {
     // Update element styles
-    console.log(`Updating ${property} to ${value} for element ${selectedElement}`);
   };
 
   const handleDragStart = (e: React.DragEvent, elementType: string) => {
@@ -141,7 +140,7 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
                   variant="outline"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => console.log('Add header')}
+                  onClick={() => {}}
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -152,7 +151,7 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
                   variant="outline"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => console.log('Add footer')}
+                  onClick={() => {}}
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 18h7" />
@@ -163,7 +162,7 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
                   variant="outline"
                   size="sm"
                   className="w-full justify-start"
-                  onClick={() => console.log('Add social links')}
+                  onClick={() => {}}
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
@@ -292,7 +291,7 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
             variant="outline"
             size="sm"
             className="flex-1"
-            onClick={() => console.log('Undo')}
+            onClick={() => {}}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -303,7 +302,7 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
             variant="outline"
             size="sm"
             className="flex-1"
-            onClick={() => console.log('Redo')}
+            onClick={() => {}}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6" />

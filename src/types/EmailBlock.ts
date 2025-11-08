@@ -33,7 +33,6 @@ export interface BlockStyles {
   
   // Colors - free hex with palette support
   textColor?: string;
-  backgroundColor?: string;
   borderColor?: string;
   
   // Typography - predefined sizes
@@ -170,9 +169,7 @@ export interface EmailStructure {
   blocks: EmailBlock[];
   globalStyles?: {
     fontFamily?: string;
-    backgroundColor?: string;
     containerWidth?: number;
-    containerBackgroundColor?: string;
   };
   metadata?: {
     version: string;

@@ -46,7 +46,6 @@ export default function Login() {
       try {
         await prepareDeviceInfoForLogin();
       } catch (error) {
-        console.error('Failed to prepare device info:', error);
       }
     };
 
@@ -65,7 +64,6 @@ export default function Login() {
         connection: "google-oauth2"
       });
     } catch (error) {
-      console.error('Error during Google sign-in:', error);
       setError('Sign-in failed. Please try again.');
       setIsLoading(false);
     }
@@ -140,7 +138,6 @@ export default function Login() {
         });
         
         if (result?.error) {
-          console.error("Sign in after signup error:", result.error);
           setError("Account created but sign in failed. Please try signing in manually.");
         } else if (result?.ok) {
           router.push("/dashboard");
@@ -154,7 +151,6 @@ export default function Login() {
         });
         
         if (result?.error) {
-          console.error("Authentication error:", result.error);
           setError("Authentication failed. Please check your email and password.");
         } else if (result?.ok) {
           setSuccess("Signed in successfully! Redirecting...");
@@ -163,7 +159,6 @@ export default function Login() {
         }
       }
     } catch (error) {
-      console.error("Authentication error:", error);
       setError(error instanceof Error ? error.message : "An error occurred during authentication. Please try again.");
     } finally {
       setIsLoading(false);
@@ -218,7 +213,6 @@ export default function Login() {
       }, 3000);
       
     } catch (error) {
-      console.error("Forgot password error:", error);
       setError(error instanceof Error ? error.message : "Failed to send reset email. Please try again.");
     } finally {
       setIsLoading(false);
@@ -390,11 +384,11 @@ export default function Login() {
             {/* Terms Agreement */}
             <div className="text-center text-sm text-gray-500 mt-6 px-4">
               By continuing you confirm that you&apos;ve read and accepted our{" "}
-              <Link href="/terms" className="text-gray-700 underline hover:text-gray-900">
+              <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-gray-700 underline hover:text-gray-900">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy-policy" className="text-gray-700 underline hover:text-gray-900">
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-gray-700 underline hover:text-gray-900">
                 Privacy Policy
               </Link>
             </div>

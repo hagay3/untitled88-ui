@@ -76,7 +76,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
   } catch (error) {
-    console.error('Error storing device info:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 }

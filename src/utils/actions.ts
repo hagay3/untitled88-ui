@@ -31,9 +31,6 @@ export const callApi = async (
     });
 
     if (!response.ok) {
-      console.log(
-        `endpoint: ${endpoint} response NOT OK: ${JSON.stringify(data)}`
-      );
       return null;
     } else {
       if(returnJson) {
@@ -43,9 +40,6 @@ export const callApi = async (
       }
     }
   } catch (error) {
-    console.log(
-      `API call to ${endpoint} failed: ${JSON.stringify(data)}, error: ${error}`
-    );
     return null;
   }
 };
@@ -131,7 +125,6 @@ export async function verifyToken(token: string): Promise<boolean> {
 
   const isAlive = await isUrlAlive(jwksUri, "HEAD");
   if (!isAlive) {
-    console.log("No internet connection")
     return true;
   }
 

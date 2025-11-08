@@ -72,8 +72,8 @@ export default function BetaVerifyPage() {
           </p>
           
           <div className="flex justify-center space-x-6 text-xs text-gray-400">
-            <Link href="/privacy-policy" className="hover:text-gray-600">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-gray-600">Terms of Service</Link>
+            <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">Privacy Policy</Link>
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">Terms of Service</Link>
           </div>
         </div>
       </div>

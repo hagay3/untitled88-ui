@@ -78,7 +78,6 @@ export default function AIEmailGenerator({
         const response = await aiAPI.getEmailSuggestions();
         setSuggestions(response);
       } catch (error) {
-        console.error('Failed to load suggestions:', error);
       }
     };
 
@@ -102,7 +101,6 @@ export default function AIEmailGenerator({
         setRateLimitInfo(response.endpoints[endpoint] || null);
       }
     } catch (error) {
-      console.error('Failed to load rate limit status:', error);
     }
   }, [mode]);
 
@@ -148,7 +146,6 @@ export default function AIEmailGenerator({
         }
       }
     } catch (error: any) {
-      console.error('Email generation error:', error);
       showError(error.message || 'Failed to generate email');
     } finally {
       setIsGenerating(false);

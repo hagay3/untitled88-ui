@@ -60,7 +60,6 @@ export default async function handler(
     });
 
     if (!tokenResponse.ok) {
-      console.error('Failed to get Auth0 management token:', await tokenResponse.text());
       return res.status(500).json({ message: 'Authentication service error' });
     }
 
@@ -84,7 +83,6 @@ export default async function handler(
 
     if (!createUserResponse.ok) {
       const errorData = await createUserResponse.json();
-      console.error('Auth0 user creation error:', errorData);
       
       // Handle specific Auth0 errors
       if (errorData.code === 'user_exists') {
@@ -121,7 +119,6 @@ export default async function handler(
     });
 
   } catch (error) {
-    console.error('Signup API error:', error);
     return res.status(500).json({ 
       message: 'Internal server error. Please try again later.' 
     });

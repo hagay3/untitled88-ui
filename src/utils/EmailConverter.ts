@@ -107,7 +107,6 @@ export class EmailConverter {
       case 'features':
         return this.parseFeaturesBlock(element, blockId, orderId, styles);
       default:
-        console.warn(`Unknown block type: ${blockType}`);
         return null;
     }
   }
@@ -667,9 +666,6 @@ export class EmailConverter {
         styles.textColor = inlineStyles.color;
       }
       
-      if (inlineStyles['background-color']) {
-        styles.backgroundColor = inlineStyles['background-color'];
-      }
       
       // Extract font properties
       if (inlineStyles['font-family']) {
@@ -755,9 +751,6 @@ export class EmailConverter {
       cssProps.push(`color: ${styles.textColor}`);
     }
     
-    if (styles.backgroundColor) {
-      cssProps.push(`background-color: ${styles.backgroundColor}`);
-    }
     
     // Font properties
     if (styles.fontFamily) {
@@ -795,18 +788,94 @@ export class EmailConverter {
     return title?.textContent || undefined;
   }
   
-  private extractPreheader(_doc: Document): string | undefined {
-    // TODO: Extract preheader from HTML
+  private extractPreheader(doc: Document): string | undefined {
+    // Look for preheader text in various common locations
+    
+    // Check for explicit preheader elements
+    const preheaderElements = doc.querySelectorAll('[data-preheader], .preheader, #preheader');
+    if (preheaderElements.length > 0) {
+      return preheaderElements[0].textContent?.trim();
+    }
+    
+    // Check for hidden text at the beginning (common preheader pattern)
+    const hiddenElements = doc.querySelectorAll('[style*="display:none"], [style*="display: none"], .hide, .hidden');
+    for (const element of hiddenElements) {
+      const text = element.textContent?.trim();
+      if (text && text.length > 10 && text.length < 200) {
+        return text;
+      }
+    }
+    
+    // Check meta description
+    const metaDescription = doc.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      const content = metaDescription.getAttribute('content');
+      if (content && content.length > 10 && content.length < 200) {
+        return content;
+      }
+    }
+    
     return undefined;
   }
-  
-  private extractGlobalStyles(_doc: Document) {
-    // TODO: Extract global styles
+
+  private extractGlobalStyles(doc: Document) {
+    // Extract font family from body or html elements
+    let fontFamily = 'Arial, sans-serif';
+    const bodyElement = doc.querySelector('body');
+    const htmlElement = doc.querySelector('html');
+    
+    // Check body style attribute
+    if (bodyElement) {
+      const bodyStyle = bodyElement.getAttribute('style');
+      if (bodyStyle) {
+        const fontMatch = bodyStyle.match(/font-family\s*:\s*([^;]+)/i);
+        if (fontMatch) {
+          fontFamily = fontMatch[1].trim().replace(/['"]/g, '');
+        }
+      }
+    }
+    
+    // Check computed styles or CSS rules
+    const styleElements = doc.querySelectorAll('style');
+    for (const styleElement of styleElements) {
+      const cssText = styleElement.textContent || '';
+      const bodyFontMatch = cssText.match(/body\s*\{[^}]*font-family\s*:\s*([^;}]+)/i);
+      if (bodyFontMatch) {
+        fontFamily = bodyFontMatch[1].trim().replace(/['"]/g, '');
+        break;
+      }
+    }
+    
+    // Extract container width from main table or container elements
+    let containerWidth = 600;
+    const mainTable = doc.querySelector('table[width]');
+    if (mainTable) {
+      const width = mainTable.getAttribute('width');
+      if (width && !isNaN(Number(width))) {
+        containerWidth = Number(width);
+      }
+    }
+    
+    // Look for container elements with specific widths
+    const containers = doc.querySelectorAll('[style*="width"], .container, .email-container');
+    for (const container of containers) {
+      const style = container.getAttribute('style');
+      if (style) {
+        const widthMatch = style.match(/width\s*:\s*(\d+)px/i);
+        if (widthMatch) {
+          const width = Number(widthMatch[1]);
+          if (width >= 300 && width <= 800) {
+            containerWidth = width;
+            break;
+          }
+        }
+      }
+    }
+    
+    
     return {
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f4f4f4',
-      containerWidth: 600,
-      containerBackgroundColor: '#ffffff',
+      fontFamily,
+      containerWidth,
     };
   }
   
@@ -818,12 +887,12 @@ export class EmailConverter {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${emailStructure.subject || 'Email'}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: ${emailStructure.globalStyles?.backgroundColor || '#f4f4f4'};">
+<body style="margin: 0; padding: 0; background-color: #ffffff;">
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
             <td align="center">
                 <table width="${emailStructure.globalStyles?.containerWidth || 600}" cellpadding="0" cellspacing="0" border="0" 
-                       style="background-color: ${emailStructure.globalStyles?.containerBackgroundColor || '#ffffff'};">
+                       style="background-color: #ffffff;">
                     ${blockHtmls.join('\n')}
                 </table>
             </td>

@@ -51,7 +51,6 @@ class EmailService {
     try {
       // Verify SMTP connection
       await this.transporter.verify();
-      console.log('SMTP connection verified successfully');
 
       // Load and prepare email template
       const template = await this.loadEmailTemplate();
@@ -88,15 +87,9 @@ The Untitled88 Team
       // Send email
       const info = await this.transporter.sendMail(mailOptions);
       
-      console.log('Password reset email sent successfully:', {
-        messageId: info.messageId,
-        to: to,
-        timestamp: new Date().toISOString(),
-      });
 
       return true;
     } catch (error) {
-      console.error('Failed to send password reset email:', error);
       return false;
     }
   }
@@ -105,7 +98,6 @@ The Untitled88 Team
     try {
       // Verify SMTP connection
       await this.transporter.verify();
-      console.log('SMTP connection verified successfully');
 
       // Email options
       const mailOptions = {
@@ -123,17 +115,9 @@ The Untitled88 Team
       // Send email
       const info = await this.transporter.sendMail(mailOptions);
       
-      console.log('Test email sent successfully:', {
-        messageId: info.messageId,
-        to: to,
-        subject: subject,
-        senderEmail: senderEmail,
-        timestamp: new Date().toISOString(),
-      });
 
       return true;
     } catch (error) {
-      console.error('Failed to send test email:', error);
       return false;
     }
   }
@@ -141,10 +125,8 @@ The Untitled88 Team
   async testConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log('SMTP connection test successful');
       return true;
     } catch (error) {
-      console.error('SMTP connection test failed:', error);
       return false;
     }
   }

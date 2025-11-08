@@ -48,7 +48,6 @@ export const HeaderBlockComponent: React.FC<HeaderBlockComponentProps> = ({
   const handleImageUploaded = (imageUrl: string) => {
     setEditingImageUrl(imageUrl);
     setUseImage(true);
-    console.log('🖼️ Header image uploaded successfully, updating block and syncing with server...', imageUrl);
     
     // Auto-save the uploaded image and trigger HTML regeneration + server sync
     onUpdate?.(block.id, {
@@ -85,14 +84,6 @@ export const HeaderBlockComponent: React.FC<HeaderBlockComponentProps> = ({
   };
 
   // Debug: Log header alignment rendering
-  console.log(`🏠 [HeaderBlockComponent] Rendering header with alignment:`, {
-    blockId: block.id,
-    textAlignment,
-    alignmentClass,
-    imageAlignmentClass: getImageAlignmentClass(),
-    hasImage: !!block.content.imageUrl,
-    hasStyles: !!block.styles
-  });
 
   const customActions = (
     <button

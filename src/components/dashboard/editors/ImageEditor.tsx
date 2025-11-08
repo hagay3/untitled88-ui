@@ -126,7 +126,6 @@ export default function ImageEditor({ block, onSave, onClose }: ImageEditorProps
       }
 
     } catch (error) {
-      console.error('Upload failed:', error);
       alert('Failed to upload image. Please try again.');
     } finally {
       setIsUploading(false);
@@ -334,7 +333,7 @@ export default function ImageEditor({ block, onSave, onClose }: ImageEditorProps
                       height: height === 'auto' ? 'auto' : height,
                       borderRadius
                     }}
-                    onError={() => console.log('Image failed to load')}
+                    onError={() => {}}
                   />
                 ) : (
                   <div className="w-32 h-32 bg-gray-200 rounded-lg mx-auto flex items-center justify-center">

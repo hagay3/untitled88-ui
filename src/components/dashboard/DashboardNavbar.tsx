@@ -50,7 +50,6 @@ export default function DashboardNavbar({
       setIsSaving(true);
       await onSave();
     } catch (error) {
-      console.error('Save failed:', error);
     } finally {
       setIsSaving(false);
     }

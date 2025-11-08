@@ -45,7 +45,6 @@ export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
 
   const handleImageUploaded = (imageUrl: string) => {
     setEditingImageUrl(imageUrl);
-    console.log('🖼️ Image uploaded successfully, updating block and syncing with server...', imageUrl);
     
     // Auto-save the uploaded image and trigger HTML regeneration + server sync
     onUpdate?.(block.id, {
@@ -62,7 +61,6 @@ export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
 
   const handleImageError = () => {
     // Could show a placeholder or error state
-    console.warn(`Failed to load image: ${block.content.imageUrl}`);
   };
 
   const cssStyles = blockStylesToCss(block.styles);
@@ -86,14 +84,6 @@ export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
   };
 
   // Debug: Log image alignment rendering
-  console.log(`🖼️ [ImageBlockComponent] Rendering image with alignment:`, {
-    blockId: block.id,
-    textAlignment,
-    alignmentClass,
-    imageAlignmentClass: getImageAlignmentClass(),
-    hasStyles: !!block.styles,
-    hasLinkUrl: !!block.content.linkUrl
-  });
 
   const imageElement = (
     <img

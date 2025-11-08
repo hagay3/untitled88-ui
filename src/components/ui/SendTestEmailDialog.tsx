@@ -73,7 +73,6 @@ export default function SendTestEmailDialog({
         onSend?.(false, data.error || 'Failed to send test email');
       }
     } catch (error) {
-      console.error('Error sending test email:', error);
       const errorMessage = 'Network error. Please try again.';
       setError(errorMessage);
       onSend?.(false, errorMessage);

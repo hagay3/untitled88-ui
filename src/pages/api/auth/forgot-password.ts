@@ -48,7 +48,6 @@ export default async function handler(
     });
 
     if (!tokenResponse.ok) {
-      console.error('Failed to get Auth0 management token:', await tokenResponse.text());
       return res.status(500).json({ message: 'Authentication service error' });
     }
 
@@ -62,7 +61,6 @@ export default async function handler(
     });
 
     if (!connectionsResponse.ok) {
-      console.error('Failed to get connections:', await connectionsResponse.text());
       return res.status(500).json({ message: 'Failed to retrieve connection information' });
     }
 
@@ -91,7 +89,6 @@ export default async function handler(
 
     if (!resetResponse.ok) {
       const errorData = await resetResponse.json();
-      console.error('Auth0 password reset error:', errorData);
       
       // Handle specific Auth0 errors
       if (errorData.statusCode === 400 && errorData.message?.includes('user does not exist')) {
@@ -120,7 +117,6 @@ export default async function handler(
     });
 
     if (!emailSent) {
-      console.error('Failed to send password reset email via custom email service');
       return res.status(500).json({ 
         message: 'Password reset link was created but email could not be sent. Please try again.' 
       });
@@ -133,7 +129,6 @@ export default async function handler(
     });
 
   } catch (error) {
-    console.error('Forgot password API error:', error);
     return res.status(500).json({ 
       message: 'Internal server error. Please try again later.' 
     });

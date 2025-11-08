@@ -107,14 +107,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.error('Missing email or password in credentials');
           return null;
         }
 
         // Debug environment variables
-        console.log('Auth0 Domain:', process.env.AUTH0_DOMAIN);
-        console.log('Auth0 Client ID:', process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID);
-        console.log('Auth0 Client Secret exists:', !!process.env.AUTH0_CLIENT_SECRET);
 
         try {
           // Authenticate with Auth0's Resource Owner Password Grant
@@ -136,11 +132,6 @@ export const authOptions: NextAuthOptions = {
 
           if (!authResponse.ok) {
             const errorData = await authResponse.json();
-            console.error('Auth0 authentication failed:', {
-              status: authResponse.status,
-              statusText: authResponse.statusText,
-              error: errorData
-            });
             return null;
           }
 
@@ -154,7 +145,6 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!userResponse.ok) {
-            console.error('Failed to get user info from Auth0');
             return null;
           }
 
@@ -172,7 +162,6 @@ export const authOptions: NextAuthOptions = {
             expiresAt: tokenData.expires_in ? Date.now() + (tokenData.expires_in * 1000) : undefined,
           };
         } catch (error) {
-          console.error('Authentication error:', error);
           return null;
         }
       }
@@ -236,16 +225,33 @@ export const authOptions: NextAuthOptions = {
             ip_address: "unknown"
           };
           
+          // FIRST: Try to retrieve stored device info before making API calls
+          console.log(`🔍 [NextAuth JWT] Starting device info retrieval for user: ${user.id}`);
+          console.log(`📊 [NextAuth JWT] Global storage exists: ${!!global.pendingDeviceIds}`);
+          console.log(`📊 [NextAuth JWT] Storage size: ${global.pendingDeviceIds?.size || 0}`);
+          
           if (global.pendingDeviceIds && global.pendingDeviceIds.size > 0) {
-            // Get the most recent device info (within last 5 minutes)
+            // Get the most recent device info (within last 10 minutes)
             const now = Date.now();
             let mostRecentEntry = null;
             let mostRecentTime = 0;
             
-            for (const [, value] of global.pendingDeviceIds.entries()) {
-              if (now <= value.expires && value.timestamp > mostRecentTime) {
-                mostRecentEntry = value;
-                mostRecentTime = value.timestamp;
+            console.log(`🔍 Checking ${global.pendingDeviceIds.size} stored device entries...`);
+            
+            for (const [key, entry] of global.pendingDeviceIds.entries()) {
+              console.log(`📱 Device entry: ${key}`);
+              console.log(`   - expires: ${entry.expires > now} (${new Date(entry.expires).toISOString()})`);
+              console.log(`   - age: ${(now - entry.timestamp) / 1000}s`);
+              console.log(`   - device_name: ${entry.device_name}`);
+              console.log(`   - operating_system: ${entry.operating_system}`);
+              console.log(`   - browser: ${entry.browser}`);
+              
+              if (now <= entry.expires && entry.timestamp > mostRecentTime) {
+                mostRecentEntry = entry;
+                mostRecentTime = entry.timestamp;
+                console.log(`   ✅ This is the most recent valid entry so far`);
+              } else {
+                console.log(`   ❌ Entry expired or older than current best`);
               }
             }
             
@@ -258,14 +264,55 @@ export const authOptions: NextAuthOptions = {
                 device_name: mostRecentEntry.device_name,
                 ip_address: mostRecentEntry.ip_address
               };
+              
+              console.log(`✅ [NextAuth JWT] Retrieved stored device info:`);
+              console.log(`   - device_name: ${deviceInfo.device_name}`);
+              console.log(`   - operating_system: ${deviceInfo.operating_system}`);
+              console.log(`   - browser: ${deviceInfo.browser}`);
+              console.log(`   - device_id: ${deviceInfo.device_id}`);
+              
+              // Clean up old entries
+              const cutoffTime = now - 600000; // 10 minutes ago
+              for (const [key, entry] of global.pendingDeviceIds.entries()) {
+                if (entry.timestamp < cutoffTime) {
+                  global.pendingDeviceIds.delete(key);
+                  console.log(`🧹 Cleaned up expired entry: ${key}`);
+                }
+              }
+            } else {
+              console.log('⚠️ [NextAuth JWT] No valid device info found in storage');
+              console.log('📊 [NextAuth JWT] All entries were either expired or invalid');
             }
+          } else {
+            console.log('⚠️ [NextAuth JWT] No device info storage available or storage is empty');
+          }
+          
+          // SECOND: Call subscribe_user API with retrieved device info
+          console.log(`🚀 [NextAuth JWT] Calling subscribe_user API with device info:`);
+          console.log(`   - user_id: ${user.id}`);
+          console.log(`   - device_name: ${deviceInfo.device_name}`);
+          console.log(`   - operating_system: ${deviceInfo.operating_system}`);
+          console.log(`   - browser: ${deviceInfo.browser}`);
+          console.log(`   - device_id: ${deviceInfo.device_id}`);
+          
+          try {
+            await callApiServerSide("subscribe_user", user.id, token.accessToken, deviceInfo, "POST");
+            console.log(`✅ [NextAuth JWT] subscribe_user API call completed`);
+          } catch (error) {
+            // Don't fail login if subscribe_user fails, just log it
+            console.error('❌ [NextAuth JWT] Failed to call subscribe_user:', error);
           }
 
           
-          // Session ID is already included in the Auth0 token
-          await handleLogin(user.id, account.id_token, deviceInfo);
+          // subscribe_user already handles user registration and login tracking
+          // No need to call handleLogin separately
         } else if (token.id && token.email && !token.loginProcessed) {
-          await handleLogin(token.id as string, token.accessToken as string, null);
+          // Call subscribe_user for existing sessions too
+          try {
+            await callApiServerSide("subscribe_user", token.id as string, token.accessToken as string, {}, "POST");
+          } catch (error) {
+            // Don't fail login if subscribe_user fails, just log it
+          }
           token.loginProcessed = true;
         } else {
           // Check if token needs refresh
@@ -335,20 +382,24 @@ const callApiServerSide = async (
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
     
-    // Add device info to the payload
+    console.log(`🔧 [callApiServerSide] Preparing ${endpoint} API call:`);
+    console.log(`   - user_id: ${user_id}`);
+    console.log(`   - deviceInfo received:`, deviceInfo);
+    
+    // Add device info to the payload with proper fallbacks
     const payloadWithDeviceInfo = {
       user_id: user_id,
       device_id: deviceInfo?.device_id || "",
       operating_system: deviceInfo?.operating_system || "unknown",
-      browser: deviceInfo?.browser || "unknown",
+      browser: deviceInfo?.browser || "unknown", 
       device_type: deviceInfo?.device_type || "desktop",
       device_name: deviceInfo?.device_name || "Unknown Device",
       ip_address: deviceInfo?.ip_address || "unknown",
       user_agent: deviceInfo?.user_agent || "",
       operating_system_version: deviceInfo?.operating_system_version || "",
-      country: deviceInfo?.country || "",
-      city: deviceInfo?.city || "",
     };
+    
+    console.log(`📦 [callApiServerSide] Final payload:`, payloadWithDeviceInfo);
     
     const response = await fetch(`${baseUrl}/api/${endpoint}`, {
       method: method,
@@ -378,17 +429,62 @@ const handleLogin = async (
 ) => {
   
   try {
+    // If no deviceInfo provided, try to get it from stored device info
+    let finalDeviceInfo = deviceInfo;
+    
+    if (!finalDeviceInfo) {
+      // Try to get device info from the global storage (set by client-side)
+      if (global.pendingDeviceIds && global.pendingDeviceIds.size > 0) {
+        const now = Date.now();
+        let mostRecentEntry = null;
+        let mostRecentTime = 0;
+
+        for (const [, entry] of global.pendingDeviceIds.entries()) {
+          if (now <= entry.expires && entry.timestamp > mostRecentTime) {
+            mostRecentEntry = entry;
+            mostRecentTime = entry.timestamp;
+          }
+        }
+
+        if (mostRecentEntry) {
+          finalDeviceInfo = {
+            device_id: mostRecentEntry.device_id,
+            operating_system: mostRecentEntry.operating_system,
+            browser: mostRecentEntry.browser,
+            device_type: mostRecentEntry.device_type,
+            device_name: mostRecentEntry.device_name,
+            ip_address: mostRecentEntry.ip_address,
+            user_agent: req?.headers?.['user-agent'] || '',
+            operating_system_version: mostRecentEntry.operating_system_version || ''
+          };
+        }
+      }
+      
+      // Fallback device info if nothing is available
+      if (!finalDeviceInfo) {
+        finalDeviceInfo = {
+          device_id: `fallback_${Date.now()}`,
+          operating_system: 'unknown',
+          browser: 'unknown',
+          device_type: 'desktop',
+          device_name: 'Unknown Device',
+          ip_address: 'unknown',
+          user_agent: req?.headers?.['user-agent'] || '',
+          operating_system_version: ''
+        };
+      }
+    }
+    
     // Add user agent if available from request
-    if (req && deviceInfo) {
-      deviceInfo.user_agent = req.headers?.['user-agent'] || '';
+    if (req && finalDeviceInfo) {
+      finalDeviceInfo.user_agent = req.headers?.['user-agent'] || finalDeviceInfo.user_agent || '';
     }
     
     // Call backend API to log the user login using server-side function
-    await callApiServerSide("user_login", user_id, accessToken, deviceInfo);
+    await callApiServerSide("user_login", user_id, accessToken, finalDeviceInfo, "POST");
 
     
   } catch (error) {
-    console.error('Error in handleLogin:', error);
   }
 };
 

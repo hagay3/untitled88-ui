@@ -83,7 +83,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         }
       }
     } catch (error) {
-      console.error('Failed to fetch daily usage:', error);
     }
   };
 
@@ -149,10 +148,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         // this is an example of chat data :
         // 1) Load ALL conversations with messages and emails (do not filter by message_type)
         if (chatData.success && chatData.messages && chatData.messages.length > 0) {
-          console.log('📨 [DashboardLayout] Processing chat history:', {
-            totalMessages: chatData.messages.length,
-            emailMessages: chatData.messages.length
-          });
           
           // Transform chat history messages to conversation history format WITHOUT filtering
           processedChatHistory = chatData.messages.map((msg: any) => {
@@ -177,7 +172,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           setConversationHistory([]);
         }
       } else {
-        console.error('❌ Failed to load chat history:', chatHistoryResponse.status);
         setConversationHistory([]);
       }
 
@@ -196,12 +190,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         if (emailMessages.length > 0) {
           const latestEmailMessage = emailMessages[0]; // First item after sorting (newest)
           
-          console.log('📧 [DashboardLayout] Loading email from chat history:', {
-            hasEmailData: !!latestEmailMessage.emailData,
-            hasMessageId: !!latestEmailMessage.emailData?.message_id,
-            messageId: latestEmailMessage.emailData?.message_id,
-            subject: latestEmailMessage.emailData?.subject
-          });
           
           if (latestEmailMessage.emailData) {
             // The emailData should already be parsed from the backend
@@ -213,9 +201,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
               // New JSON format - convert to HTML
               try {
                 emailHtml = emailConverter.jsonToHtml(emailData.email_json);
-                console.log('✅ [DashboardLayout] Converted email JSON to HTML');
               } catch (error) {
-                console.error('❌ [DashboardLayout] Failed to convert JSON to HTML:', error);
                 // Fallback to legacy HTML if conversion fails
                 emailHtml = emailData.html || emailData.updated_email_html || emailData.email_html || '';
               }
@@ -234,9 +220,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
               lastEmailLoaded = true;
               setLoadingStatus('Email loaded from history!');
               
-              console.log('✅ [DashboardLayout] Email loaded from chat history with message_id:', emailData.message_id);
             } else {
-              console.warn('⚠️ [DashboardLayout] Email data found but no HTML content');
             }
           }
         }
@@ -335,9 +319,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           // New JSON format - convert to HTML
           try {
             emailHtml = emailConverter.jsonToHtml(response.data);
-            console.log('✅ [DashboardLayout] Converted generated email JSON to HTML');
           } catch (error) {
-            console.error('❌ [DashboardLayout] Failed to convert generated JSON to HTML:', error);
             // Fallback to legacy fields if available
             emailHtml = response.data.email_html || response.data.updated_email_html || '';
           }
@@ -363,7 +345,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           mobileOptimized: response.data.mobile_optimized
         };
         
-        console.log('📧 [DashboardLayout] Generated email with message_id:', response.data.message_id);
         
         setCurrentEmail(emailData);
         
@@ -394,13 +375,11 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       }
       
     } catch (error: any) {
-      console.error('❌ Email generation failed:', error);
       setIsGenerating(false);
       setGenerationProgress('');
       
       // Check if it's an authentication error
       if (error.message?.includes('No valid session') || error.message?.includes('log in again')) {
-        console.error('🔐 Authentication error detected');
         showError('Authentication expired. Please refresh the page and log in again.');
         // Optionally redirect to login
         // router.push('/login');
@@ -433,7 +412,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     }
 
     try {
-      console.log('📤 Exporting email using current local state HTML');
       
       if (options.format === 'html-with-metadata') {
         // Export both HTML and metadata
@@ -458,7 +436,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       }
 
     } catch (error: any) {
-      console.error('❌ Export failed:', error);
       showError(error.message || 'Failed to export email. Please try again.');
     }
   };
@@ -605,37 +582,22 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
 
   // Handle share email - generate link first, then show dialog
   const handleShareEmail = async () => {
-    console.log('🚀 handleShareEmail called!', {
-      hasCurrentEmail: !!currentEmail,
-      hasHtml: !!currentEmail?.html,
-      emailSubject: currentEmail?.subject
-    });
 
     if (!currentEmail || !currentEmail.html) {
-      console.log('❌ No email to share');
       showError('No email to share. Please generate an email first.');
       return;
     }
 
     try {
       setIsCreatingShare(true); // Start loading state
-      console.log('🔗 Creating shareable link first...');
       
       // Get the current email data
       const emailHtml = getExportHtml ? getExportHtml() : currentEmail.html;
       const emailJson = currentEmail.email_json || {};
       const emailSubject = currentEmail.subject || 'Untitled Email';
       
-      console.log('📧 Sharing email data:', {
-        hasHtml: !!emailHtml,
-        hasJson: !!emailJson,
-        jsonType: typeof emailJson,
-        jsonKeys: Object.keys(emailJson || {}),
-        subject: emailSubject
-      });
       
       // Use the existing API client for consistency
-      console.log('📡 Making API call to share/create...');
       const response = await apiClient.fetchWithAuth('share/create', {
         method: 'POST',
         body: JSON.stringify({
@@ -645,53 +607,32 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         }),
       });
 
-      console.log('📥 API response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Share API error:', response.status, errorText);
         showError(`Failed to share email: ${response.status} ${response.statusText}`);
         return;
       }
 
       const data = await response.json();
-      console.log('📊 API response data:', data);
 
       if (data.success) {
         // Construct full URL from the shareable_link suffix using current host
         const currentOrigin = window.location.origin; // Gets protocol + host + port
         const shareableUrl = `${currentOrigin}${data.shareable_link}`;
         
-        console.log('🔗 Constructing full URL:', {
-          origin: currentOrigin,
-          suffix: data.shareable_link,
-          fullUrl: shareableUrl
-        });
         
         setShareableLink(shareableUrl);
         
         // Open dialog only after link is set
-        console.log('🎯 Opening dialog with link ready');
         setShowShareDialog(true);
         
         showSuccess('Shareable link created successfully!');
         
-        console.log('✅ Email shared successfully:', {
-          shareable_id: data.shareable_id,
-          shareable_link: data.shareable_link,
-          full_url: shareableUrl,
-          dialog_opened: true
-        });
       } else {
-        console.error('❌ API returned error:', data.error);
         showError(data.error || 'Failed to share email');
       }
     } catch (error) {
-      console.error('❌ Error sharing email:', error);
       showError('Failed to share email. Please try again.');
     } finally {
       setIsCreatingShare(false); // Stop loading state
@@ -707,20 +648,12 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
 
     try {
       setIsCreatingShareLink(true);
-      console.log('🔗 Creating shareable link...');
       
       // Get the current email data
       const emailHtml = getExportHtml ? getExportHtml() : currentEmail.html;
       const emailJson = currentEmail.email_json || {};
       const emailSubject = currentEmail.subject || 'Untitled Email';
       
-      console.log('📧 Sharing email data:', {
-        hasHtml: !!emailHtml,
-        hasJson: !!emailJson,
-        jsonType: typeof emailJson,
-        jsonKeys: Object.keys(emailJson || {}),
-        subject: emailSubject
-      });
       
       // Use the existing API client for consistency
       const response = await apiClient.fetchWithAuth('share/create', {
@@ -734,7 +667,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Share API error:', response.status, errorText);
         showError(`Failed to share email: ${response.status} ${response.statusText}`);
         return;
       }
@@ -748,16 +680,10 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         
         showSuccess('Shareable link created successfully!');
         
-        console.log('✅ Email shared successfully:', {
-          shareable_id: data.shareable_id,
-          shareable_link: data.shareable_link,
-          full_url: data.full_url
-        });
       } else {
         showError(data.error || 'Failed to share email');
       }
     } catch (error) {
-      console.error('❌ Error sharing email:', error);
       showError('Failed to share email. Please try again.');
     } finally {
       setIsCreatingShareLink(false);
@@ -767,12 +693,10 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   // Handle save email
   const handleSaveEmail = async () => {
     if (!currentEmail?.message_id) {
-      console.warn('No email to save');
       return;
     }
 
     try {
-      console.log('💾 Saving email to database...');
       
       // Get the current email JSON structure
       let emailJson = currentEmail.email_json;
@@ -783,9 +707,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         if (currentHtml) {
           try {
             emailJson = emailConverter.htmlToJson(currentHtml);
-            console.log('✅ Converted HTML to JSON for saving');
           } catch (error) {
-            console.error('❌ Failed to convert HTML to JSON:', error);
             throw new Error('Unable to save email: conversion failed');
           }
         } else {
@@ -804,13 +726,11 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         throw new Error(result.error || 'Failed to save email');
       }
 
-      console.log('✅ Email saved successfully:', result);
       
       // Show success message
       showSuccess('Email saved successfully');
       
     } catch (error) {
-      console.error('❌ Failed to save email:', error);
       showError(error instanceof Error ? error.message : 'Failed to save email');
       throw error; // Re-throw so the UI can handle the error state
     }
@@ -872,20 +792,13 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                 generationProgress={generationProgress}
                 initialPrompt={initialPrompt}
                 onEmailClick={(emailData) => {
-                  console.log('📧 [DashboardLayout] Email selected for preview:', {
-                    hasMessageId: !!emailData.message_id,
-                    messageId: emailData.message_id,
-                    subject: emailData.subject
-                  });
                   
                   // Convert from JSON to HTML if needed
                   let emailHtml = emailData.html;
                   if (emailData.email_json && !emailHtml) {
                     try {
                       emailHtml = emailConverter.jsonToHtml(emailData.email_json);
-                      console.log('✅ [DashboardLayout] Converted selected email JSON to HTML');
                     } catch (error) {
-                      console.error('❌ [DashboardLayout] Failed to convert selected email JSON to HTML:', error);
                       emailHtml = '';
                     }
                   }
@@ -920,7 +833,6 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
                 }}
                 onExportHtmlReady={(getHtmlFunction) => {
                   // Store the export function for immediate access to local state
-                  console.log('📤 Export function ready from SimpleJsonEmailEditor');
                   setGetExportHtml(() => getHtmlFunction);
                 }}
                 onPendingChangesUpdate={(hasPending, count) => {

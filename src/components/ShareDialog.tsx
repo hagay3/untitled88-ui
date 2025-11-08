@@ -22,11 +22,6 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   const [copySuccess, setCopySuccess] = useState(false);
 
   // Debug logging
-  console.log('🎯 ShareDialog opened with link:', {
-    emailSubject,
-    shareableLink,
-    hasShareableLink: !!shareableLink
-  });
 
   if (!isOpen) return null;
 
@@ -36,7 +31,6 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
-      console.error('Failed to copy link:', error);
     }
   };
 
@@ -100,30 +94,44 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
                 {shareableLink || 'No link available'}
               </div>
               {shareableLink && (
-                <Button
-                  onClick={handleCopyLink}
-                  variant="outline"
-                  size="sm"
-                  className={`flex-shrink-0 whitespace-nowrap ${
-                    copySuccess ? 'bg-green-100 text-green-700 border-green-300' : ''
-                  }`}
-                >
-                  {copySuccess ? (
-                    <>
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy
-                    </>
-                  )}
-                </Button>
+                <>
+                  <Button
+                    onClick={handleCopyLink}
+                    variant="outline"
+                    size="sm"
+                    className={`flex-shrink-0 whitespace-nowrap ${
+                      copySuccess ? 'bg-green-100 text-green-700 border-green-300' : ''
+                    }`}
+                  >
+                    {copySuccess ? (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => window.open(shareableLink, '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="flex-shrink-0 whitespace-nowrap"
+                    title="Open in a new tab"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Open
+                  </Button>
+                </>
               )}
             </div>
           </div>

@@ -92,7 +92,6 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
         setError(result.error || 'Registration failed. Please try again.');
       }
     } catch (err) {
-      console.error('Beta registration error:', err);
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

@@ -8,25 +8,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {
-  console.log('🔑 [API] Getting auth headers...');
   const session = await getSession();
   
-  console.log('🔑 [API] Session status:', {
-    hasSession: !!session,
-    hasUser: !!session?.user,
-    hasAccessToken: !!session?.user?.accessToken,
-    hasUserId: !!session?.user?.id,
-    userId: session?.user?.id,
-    tokenPrefix: session?.user?.accessToken ? `${session.user.accessToken.substring(0, 20)}...` : 'none'
-  });
   
   if (!session?.user?.accessToken || !session?.user?.id) {
-    console.error('❌ [API] No valid session found:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      hasAccessToken: !!session?.user?.accessToken,
-      hasUserId: !!session?.user?.id
-    });
     throw new Error('No valid session found. Please log in again.');
   }
 
@@ -36,13 +21,6 @@ const getAuthHeaders = async () => {
     'X-User-Id': session.user.id
   };
   
-  console.log('🔑 [API] Headers prepared:', {
-    hasContentType: !!headers['Content-Type'],
-    hasAuth: !!headers['Authorization'],
-    hasUserId: !!headers['X-User-Id'],
-    userId: headers['X-User-Id'],
-    authPrefix: headers['Authorization'] ? `${headers['Authorization'].substring(0, 20)}...` : 'none'
-  });
   
   return headers;
 };
@@ -50,10 +28,6 @@ const getAuthHeaders = async () => {
 // Generic API request function
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   try {
-    console.log('🌐 [API] Making request to:', endpoint, {
-      method: options.method || 'GET',
-      hasBody: !!options.body
-    });
 
     const headers = await getAuthHeaders();
     
@@ -62,26 +36,12 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       ...options.headers,
     };
     
-    console.log('🌐 [API] Final headers for request:', {
-      hasContentType: !!finalHeaders['Content-Type'],
-      hasAuth: !!finalHeaders['Authorization'],
-      hasUserId: !!finalHeaders['X-User-Id'],
-      userId: finalHeaders['X-User-Id'],
-      authPrefix: finalHeaders['Authorization'] ? `${finalHeaders['Authorization'].substring(0, 20)}...` : 'none',
-      endpoint: `${API_BASE_URL}/api${endpoint}`
-    });
     
     const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       ...options,
       headers: finalHeaders,
     });
 
-    console.log('📥 [API] Response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      endpoint: endpoint
-    });
 
     if (!response.ok) {
       // Try to get error message from response
@@ -115,19 +75,9 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     const responseData = await response.json();
-    console.log('✅ [API] Request successful:', {
-      endpoint: endpoint,
-      hasData: !!responseData,
-      dataKeys: responseData ? Object.keys(responseData) : []
-    });
 
     return responseData;
   } catch (error) {
-    console.error('❌ [API] Request failed:', {
-      endpoint: endpoint,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      errorType: error instanceof Error ? error.constructor.name : typeof error
-    });
 
     throw error;
   }
@@ -646,13 +596,6 @@ export async function updateEmailContent(
   changeDescription?: string
 ): Promise<{ success: boolean; message_id?: number; error?: string }> {
   try {
-    console.log('📤 [updateEmailContent] Starting API call:', {
-      messageId,
-      blocksCount: emailJson?.blocks?.length || 0,
-      subject: emailJson?.subject || 'N/A',
-      changeDescription,
-      timestamp: new Date().toISOString()
-    });
     
     const response = await apiRequest('/emails/update-content', {
       method: 'POST',
@@ -663,14 +606,9 @@ export async function updateEmailContent(
       })
     });
 
-    console.log('✅ [updateEmailContent] API call successful:', {
-      success: response.success,
-      messageId: response.message_id
-    });
 
     return response;
   } catch (error) {
-    console.error('❌ [updateEmailContent] API call failed:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

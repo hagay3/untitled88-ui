@@ -1,0 +1,112 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img "Untitled88 Logo" [ref=e7]
+          - heading "Get 3 Months of Spotify Premium for Free" [level=1] [ref=e9]
+        - generic [ref=e10]:
+          - button "Templates" [ref=e11] [cursor=pointer]:
+            - img [ref=e12]
+            - text: Templates
+          - button "Save" [ref=e14] [cursor=pointer]:
+            - img [ref=e15]
+            - text: Save
+          - button "Export" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+            - text: Export
+          - button "Send Email" [ref=e20] [cursor=pointer]:
+            - img [ref=e21]
+            - generic [ref=e23]: Send Email
+          - button "Share" [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+            - text: Share
+        - generic [ref=e27]:
+          - img "User Avatar" [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]: hagay3+4@gmail.com
+            - generic [ref=e31]: hagay3+4@gmail.com
+          - button [ref=e32] [cursor=pointer]:
+            - img [ref=e33]
+    - generic [ref=e35]:
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: Daily Limit
+            - generic [ref=e41]: "98"
+          - generic [ref=e42]: 98 messages left
+        - generic [ref=e43]:
+          - generic [ref=e46]: generare a special offer email based on spotify.com
+          - generic [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]:
+              - img [ref=e50]
+              - generic [ref=e52]: Generated Email
+              - generic [ref=e53]: Click to preview
+            - generic [ref=e55]:
+              - generic [ref=e56]: 📧 Get 3 Months of Spotify Premium for Free
+              - generic [ref=e57]:
+                - strong [ref=e58]: "Prompt:"
+                - text: generare a special offer email based on spotify.com
+              - generic [ref=e59]:
+                - strong [ref=e60]: "Preheader:"
+                - text: Listen without limits. Get 3 months of ad-free music for free.
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - textbox "Describe your email idea..." [ref=e63]
+            - button [disabled]:
+              - img
+          - generic [ref=e64]: Press Enter to send • Shift + Enter for new line
+      - generic [ref=e66]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - heading "Get 3 Months of Spotify Premium for Free" [level=2] [ref=e70]
+            - generic [ref=e71]:
+              - generic [ref=e72]: •
+              - generic [ref=e73]: 6 blocks
+            - img [ref=e75]
+          - generic [ref=e78]:
+            - button "🖥️ Desktop" [ref=e79] [cursor=pointer]
+            - button "📱 Mobile" [ref=e80] [cursor=pointer]
+        - generic [ref=e84]:
+          - img "Company Logo" [ref=e90]
+          - generic [ref=e93]:
+            - heading "Don't Miss This Offer" [level=1] [ref=e95]
+            - paragraph [ref=e97]: Get 3 months of Premium for free to listen without limits. Ad-free music, offline listening, and more.
+          - link "GET 3 MONTHS FREE" [ref=e102] [cursor=pointer]:
+            - /url: https://www.spotify.com/premium/
+          - generic [ref=e106]: Offer available only to users who haven't already tried Premium. Offer ends December 31, 2025. Terms and conditions apply.
+          - separator [ref=e110] [cursor=pointer]
+          - generic [ref=e113] [cursor=pointer]:
+            - generic [ref=e114]: Spotify AB, Regeringsgatan 19, 1 53 Stockholm, Sweden
+            - link "Unsubscribe" [ref=e116]:
+              - /url: https://www.spotify.com/unsubscribe/
+    - generic [ref=e119]:
+      - generic [ref=e120]:
+        - heading "Share Email" [level=2] [ref=e121]
+        - button [ref=e122] [cursor=pointer]:
+          - img [ref=e123]
+      - generic [ref=e125]:
+        - generic [ref=e126]: Email Subject
+        - generic [ref=e127]: Get 3 Months of Spotify Premium for Free
+      - generic [ref=e128]:
+        - generic [ref=e129]: Shareable Link
+        - generic [ref=e130]:
+          - generic [ref=e131]: http://localhost:3000/share/4a95e8d0-get-3-months-of-spotify-premium-for-free
+          - button "Copy" [ref=e132] [cursor=pointer]:
+            - img [ref=e133]
+            - text: Copy
+      - generic [ref=e135]:
+        - generic [ref=e136]: Share on Social Media
+        - generic [ref=e137]:
+          - button "Share on Twitter" [ref=e138] [cursor=pointer]:
+            - img [ref=e139]
+          - button "Share on LinkedIn" [ref=e141] [cursor=pointer]:
+            - img [ref=e142]
+          - button "Share on Facebook" [ref=e144] [cursor=pointer]:
+            - img [ref=e145]
+      - button "Close" [ref=e148] [cursor=pointer]
+  - alert [ref=e149]: Dashboard - AI Email Designer | Untitled88
+```

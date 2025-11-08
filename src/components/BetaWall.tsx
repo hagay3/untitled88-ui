@@ -47,11 +47,6 @@ export const BetaWall: React.FC<BetaWallProps> = ({
       // Check localStorage first for quick access
       const localBetaVerified = localStorage.getItem('beta_verified') === 'true';
       
-      console.log('BetaWall Debug:', {
-        user: !!user,
-        localBetaVerified,
-        userEmail: user?.email
-      });
       
       if (user) {
         // User is authenticated, check server-side beta access
@@ -65,10 +60,8 @@ export const BetaWall: React.FC<BetaWallProps> = ({
           if (sessionData) {
             // User is authenticated, check local beta verification
             if (localBetaVerified) {
-              console.log('BetaWall: Granting access - user authenticated and beta verified');
               setCurrentStep('granted');
             } else {
-              console.log('BetaWall: Redirecting to registration - user authenticated but not beta verified');
               setCurrentStep('registration');
             }
           } else {
@@ -80,7 +73,6 @@ export const BetaWall: React.FC<BetaWallProps> = ({
             }
           }
         } catch (error) {
-          console.error('Error checking beta access:', error);
           // Fall back to local check on error
           if (localBetaVerified) {
             setCurrentStep('granted'); // Changed from 'verification' to 'granted'
@@ -91,22 +83,17 @@ export const BetaWall: React.FC<BetaWallProps> = ({
       } else {
         // User is not authenticated
         if (localBetaVerified) {
-          console.log('BetaWall: User has beta verification but not logged in - granting access');
           setCurrentStep('granted'); // Allow access if beta verified
         } else {
-          console.log('BetaWall: User not authenticated and no beta verification - showing registration');
           setCurrentStep('registration');
         }
       }
     } catch (error) {
-      console.error('Error checking beta access:', error);
       // On error, check if user has beta verification
       const localBetaVerified = localStorage.getItem('beta_verified') === 'true';
       if (localBetaVerified) {
-        console.log('BetaWall: Error occurred but user has beta verification - granting access');
         setCurrentStep('granted');
       } else {
-        console.log('BetaWall: Error occurred and no beta verification - showing registration');
         setCurrentStep('registration');
       }
     } finally {
@@ -227,8 +214,8 @@ export const BetaWall: React.FC<BetaWallProps> = ({
           </p>
           
           <div className="flex justify-center space-x-6 text-xs text-gray-400">
-            <a href="/privacy-policy" className="hover:text-gray-600">Privacy Policy</a>
-            <a href="/terms" className="hover:text-gray-600">Terms of Service</a>
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">Privacy Policy</a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">Terms of Service</a>
           </div>
         </div>
       </div>
