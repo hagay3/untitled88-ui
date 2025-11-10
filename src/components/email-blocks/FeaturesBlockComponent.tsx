@@ -54,10 +54,15 @@ export const FeaturesBlockComponent: React.FC<FeaturesBlockComponentProps> = ({
 
   const handleFeatureChange = (index: number, field: 'title' | 'description' | 'icon', value: string) => {
     const updatedFeatures = [...editingFeatures];
-    updatedFeatures[index] = {
-      ...updatedFeatures[index],
-      [field]: value
-    };
+    const currentFeature = updatedFeatures[index];
+    if (currentFeature) {
+      updatedFeatures[index] = {
+        ...currentFeature,
+        [field]: value,
+        title: field === 'title' ? value : (currentFeature.title || ''),
+        description: field === 'description' ? value : (currentFeature.description || '')
+      };
+    }
     setEditingFeatures(updatedFeatures);
   };
 
@@ -74,7 +79,7 @@ export const FeaturesBlockComponent: React.FC<FeaturesBlockComponentProps> = ({
     setEditingField(null);
   };
 
-  const handleFeatureBlur = (index: number) => {
+  const handleFeatureBlur = (_index: number) => {
     const hasChanges = JSON.stringify(editingFeatures) !== JSON.stringify(block.content.features);
     if (hasChanges) {
       onUpdate?.(block.id, {
@@ -231,7 +236,8 @@ export const FeaturesBlockComponent: React.FC<FeaturesBlockComponentProps> = ({
                   <textarea
                     ref={(el) => {
                       if (!featureRefs.current[index]) featureRefs.current[index] = { title: null, description: null };
-                      featureRefs.current[index].title = el;
+                      const currentRef = featureRefs.current[index];
+                      if (currentRef) currentRef.title = el;
                     }}
                     value={feature.title}
                     onChange={(e) => handleFeatureChange(index, 'title', e.target.value)}
@@ -267,7 +273,8 @@ export const FeaturesBlockComponent: React.FC<FeaturesBlockComponentProps> = ({
                   <textarea
                     ref={(el) => {
                       if (!featureRefs.current[index]) featureRefs.current[index] = { title: null, description: null };
-                      featureRefs.current[index].description = el;
+                      const currentRef = featureRefs.current[index];
+                      if (currentRef) currentRef.description = el;
                     }}
                     value={feature.description}
                     onChange={(e) => handleFeatureChange(index, 'description', e.target.value)}

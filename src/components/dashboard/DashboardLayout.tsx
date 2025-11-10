@@ -14,6 +14,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorDialog, { useErrorDialog } from '@/components/ui/ErrorDialog';
 import ExportDialog from '@/components/ui/ExportDialog';
 import SendTestEmailDialog from '@/components/ui/SendTestEmailDialog';
+import { ImageSearchTool } from '@/components/tools/ImageSearchTool';
 import { apiClient } from '@/utils/apiClient';
 import { ShareDialog } from '@/components/ShareDialog';
 import { analyzeEmailIntent, generateClarificationPrompt } from '@/utils/emailIntentDetection';
@@ -45,6 +46,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
+  const [showImageTool, setShowImageTool] = useState(false);
   const [testEmailMessage, setTestEmailMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareableLink, setShareableLink] = useState<string>('');
@@ -57,32 +59,35 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
   // Pending changes state (from SimpleJsonEmailEditor)
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [pendingChangesCount, setPendingChangesCount] = useState(0);
-  const [dailyUsage, setDailyUsage] = useState({
-    daily_limit: 10,
-    daily_used: 0,
+  const [userUsage, setUserUsage] = useState({
+    messages_limit: 10,
+    messages_used: 0,
     messages_left: 10,
     reset_time: null as string | null,
-    can_send: true
+    can_send: true,
+    limit_reached: false
   });
 
-  // Fetch daily usage
-  const fetchDailyUsage = async () => {
+  // Fetch user usage
+  const fetchUserUsage = async () => {
     try {
-      const response = await apiClient.fetchWithAuth('ai/daily-usage');
+      const response = await apiClient.fetchWithAuth('ai/user-usage');
       
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setDailyUsage({
-            daily_limit: data.daily_limit,
-            daily_used: data.daily_used,
+          setUserUsage({
+            messages_limit: data.messages_limit,
+            messages_used: data.messages_used,
             messages_left: data.messages_left,
             reset_time: data.reset_time,
-            can_send: data.can_send
+            can_send: data.can_send,
+            limit_reached: data.limit_reached
           });
         }
       }
     } catch (error) {
+      // Silently handle user usage fetch errors
     }
   };
 
@@ -94,8 +99,8 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       return;
     }
 
-    // Fetch daily usage when authenticated
-    fetchDailyUsage();
+    // Fetch user usage when authenticated
+    fetchUserUsage();
     
     // Load page reload data and automatically show last email
     loadPageReloadData();
@@ -330,31 +335,37 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           html: emailHtml,
           preheader: response.data.preheader || response.data.preheader_text,
           email_json: response.data.subject && response.data.blocks ? response.data : null,
+          url_extraction_info: response.data.url_extraction_info, // ✅ Include logo URLs and extraction metadata
         };
         
+        // Debug: Log url_extraction_info being passed to email
         
         setCurrentEmail(emailData);
         
         // Update current email HTML for future updates
         setCurrentEmailHtml(emailHtml);
         
-        // Update conversation history
-        const newMessage = {
+        // 1. Add user prompt to conversation history
+        const userMessage = {
+          type: 'user',
+          content: prompt,
+          timestamp: new Date()
+        };
+        
+        // 2. Add generated email to conversation history
+        const emailMessage = {
           type: 'email',
           content: prompt,
           emailData: emailData,
           timestamp: new Date(),
           intent: emailType
         };
-        setConversationHistory(prev => [...prev, newMessage]);
         
-        // Add email to chat history
-        if (typeof window !== 'undefined' && (window as any).addEmailToChat) {
-          (window as any).addEmailToChat(emailData, prompt);
-        }
+        // 3. Update conversation history with both messages
+        setConversationHistory(prev => [...prev, userMessage, emailMessage]);
         
-        // Refresh daily usage after successful generation
-        await fetchDailyUsage();
+        // Refresh user usage after successful generation
+        await fetchUserUsage();
         setIsGenerating(false);
         setGenerationProgress('');
       } else {
@@ -734,6 +745,9 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         onExport={handleExportEmail}
         onShare={handleShareEmail}
         onSendTestEmail={handleSendTestEmail}
+        onImageTool={process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost' 
+          ? () => setShowImageTool(true) 
+          : undefined}
         currentEmail={currentEmail}
         hasPendingChanges={hasPendingChanges}
         pendingChangesCount={pendingChangesCount}
@@ -760,8 +774,8 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
             {/* Left Chat Panel - 25% */}
             <div className="w-1/4 border-r border-gray-200 flex flex-col">
               <ChatPanel
-                credits={dailyUsage.messages_left}
-                resetTime={dailyUsage.reset_time ? new Date(dailyUsage.reset_time) : null}
+                credits={userUsage.messages_left}
+                resetTime={userUsage.reset_time ? new Date(userUsage.reset_time) : null}
                 onSendMessage={handleEmailGeneration}
                 isGenerating={isGenerating}
                 generationProgress={generationProgress}
@@ -929,6 +943,12 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         isOpen={errorDialogOpen}
         message={errorMessage}
         onClose={hideError}
+      />
+
+      {/* Image Search Tool */}
+      <ImageSearchTool
+        isOpen={showImageTool}
+        onClose={() => setShowImageTool(false)}
       />
     </div>
   );

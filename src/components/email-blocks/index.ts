@@ -2,7 +2,8 @@
  * Email Block Components Export
  */
 
-export { BaseEmailBlockProps, EmailBlockWrapper, BlockActionToolbar, blockStylesToCss } from './BaseEmailBlock';
+export type { BaseEmailBlockProps } from './BaseEmailBlock';
+export { EmailBlockWrapper, BlockActionToolbar, blockStylesToCss } from './BaseEmailBlock';
 export { TextBlockComponent } from './TextBlockComponent';
 export { ImageBlockComponent } from './ImageBlockComponent';
 export { ButtonBlockComponent } from './ButtonBlockComponent';

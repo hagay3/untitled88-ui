@@ -538,7 +538,28 @@ export default function Home() {
         <footer className="bg-white border-t border-gray-100 mt-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center text-gray-500 text-sm">
-              <p className="font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>&copy; 2025 {AppConfig.site_name}. All rights reserved.</p>
+              <p className="font-normal mb-3" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>&copy; 2025 {AppConfig.site_name}. All rights reserved.</p>
+              <div className="flex items-center justify-center gap-6">
+                <a 
+                  href="/privacy-policy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-blue-600 transition-colors font-normal"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                >
+                  Privacy Policy
+                </a>
+                <span className="text-gray-300">•</span>
+                <a 
+                  href="/terms" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-600 hover:text-blue-600 transition-colors font-normal"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                >
+                  Terms of Service
+                </a>
+              </div>
             </div>
           </div>
         </footer>

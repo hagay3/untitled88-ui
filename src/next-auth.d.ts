@@ -10,6 +10,7 @@ declare module "next-auth" {
       accessToken?: string
       provider?: string
     }
+    error?: string
   }
 
   interface User {

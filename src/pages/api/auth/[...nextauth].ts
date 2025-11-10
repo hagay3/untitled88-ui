@@ -3,6 +3,7 @@ import Auth0Provider from "next-auth/providers/auth0";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { JWT } from "next-auth/jwt";
 import * as process from "process";
+import { sendError } from "@/utils/actions";
 
 // Extend the JWT type to include our custom properties
 declare module "next-auth/jwt" {
@@ -13,6 +14,9 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     accessTokenExpires?: number;
     error?: string;
+    betaMessage?: string;
+    needsRegistration?: boolean;
+    needsVerification?: boolean;
   }
 }
 
@@ -27,6 +31,8 @@ declare global {
     ip_address: string;
     timestamp: number;
     expires: number;
+    user_agent: string;
+    operating_system_version: string;
   }> | undefined;
 }
 
@@ -37,7 +43,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 
   
   try {
-    const response = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+    const response = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -114,7 +120,7 @@ export const authOptions: NextAuthOptions = {
 
         try {
           // Authenticate with Auth0's Resource Owner Password Grant
-          const authResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+          const authResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/oauth/token`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -131,14 +137,14 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!authResponse.ok) {
-            const errorData = await authResponse.json();
+            await authResponse.json(); // Consume the response body
             return null;
           }
 
           const tokenData = await authResponse.json();
           
           // Get user info from Auth0
-          const userResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
+          const userResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/userinfo`, {
             headers: {
               'Authorization': `Bearer ${tokenData.access_token}`,
             },
@@ -211,6 +217,46 @@ export const authOptions: NextAuthOptions = {
             token.provider = account.provider || "unknown";
           }
           
+          // Check beta access for Google sign-in
+          if (account.provider === "auth0" && user.email) {
+            try {
+              
+              
+              const betaCheckResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/beta/check-email`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: user.email }),
+              });
+              
+              if (betaCheckResponse.ok) {
+                const betaData = await betaCheckResponse.json();
+
+                
+                // If user is not approved for beta, reject the login
+                if (!betaData.can_login) {
+                  
+                  // Store beta status in token for error display
+                  token.error = "BetaAccessDenied";
+                  token.betaMessage = betaData.message;
+                  token.needsRegistration = betaData.needs_registration;
+                  token.needsVerification = betaData.needs_verification;
+                  
+                  return token; // Return token with error, will be handled in session callback
+                }
+                
+              } else {
+                sendError(user.id, "Beta check failed", betaCheckResponse.status);
+
+                // On API error, allow login (fail open) but log the issue
+              }
+            } catch (error) {
+              sendError(user.id, "Beta check failed error", error);
+              // On error, allow login (fail open) but log the issue
+            }
+          }
+          
           token.loginProcessed = true; // Mark that we've processed the login
           
 
@@ -226,9 +272,6 @@ export const authOptions: NextAuthOptions = {
           };
           
           // FIRST: Try to retrieve stored device info before making API calls
-          console.log(`🔍 [NextAuth JWT] Starting device info retrieval for user: ${user.id}`);
-          console.log(`📊 [NextAuth JWT] Global storage exists: ${!!global.pendingDeviceIds}`);
-          console.log(`📊 [NextAuth JWT] Storage size: ${global.pendingDeviceIds?.size || 0}`);
           
           if (global.pendingDeviceIds && global.pendingDeviceIds.size > 0) {
             // Get the most recent device info (within last 10 minutes)
@@ -236,22 +279,11 @@ export const authOptions: NextAuthOptions = {
             let mostRecentEntry = null;
             let mostRecentTime = 0;
             
-            console.log(`🔍 Checking ${global.pendingDeviceIds.size} stored device entries...`);
-            
-            for (const [key, entry] of global.pendingDeviceIds.entries()) {
-              console.log(`📱 Device entry: ${key}`);
-              console.log(`   - expires: ${entry.expires > now} (${new Date(entry.expires).toISOString()})`);
-              console.log(`   - age: ${(now - entry.timestamp) / 1000}s`);
-              console.log(`   - device_name: ${entry.device_name}`);
-              console.log(`   - operating_system: ${entry.operating_system}`);
-              console.log(`   - browser: ${entry.browser}`);
+            for (const [_, entry] of global.pendingDeviceIds.entries()) {
               
               if (now <= entry.expires && entry.timestamp > mostRecentTime) {
                 mostRecentEntry = entry;
                 mostRecentTime = entry.timestamp;
-                console.log(`   ✅ This is the most recent valid entry so far`);
-              } else {
-                console.log(`   ❌ Entry expired or older than current best`);
               }
             }
             
@@ -265,42 +297,29 @@ export const authOptions: NextAuthOptions = {
                 ip_address: mostRecentEntry.ip_address
               };
               
-              console.log(`✅ [NextAuth JWT] Retrieved stored device info:`);
-              console.log(`   - device_name: ${deviceInfo.device_name}`);
-              console.log(`   - operating_system: ${deviceInfo.operating_system}`);
-              console.log(`   - browser: ${deviceInfo.browser}`);
-              console.log(`   - device_id: ${deviceInfo.device_id}`);
-              
               // Clean up old entries
               const cutoffTime = now - 600000; // 10 minutes ago
               for (const [key, entry] of global.pendingDeviceIds.entries()) {
                 if (entry.timestamp < cutoffTime) {
                   global.pendingDeviceIds.delete(key);
-                  console.log(`🧹 Cleaned up expired entry: ${key}`);
                 }
               }
             } else {
-              console.log('⚠️ [NextAuth JWT] No valid device info found in storage');
-              console.log('📊 [NextAuth JWT] All entries were either expired or invalid');
             }
           } else {
-            console.log('⚠️ [NextAuth JWT] No device info storage available or storage is empty');
           }
           
           // SECOND: Call subscribe_user API with retrieved device info
-          console.log(`🚀 [NextAuth JWT] Calling subscribe_user API with device info:`);
-          console.log(`   - user_id: ${user.id}`);
-          console.log(`   - device_name: ${deviceInfo.device_name}`);
-          console.log(`   - operating_system: ${deviceInfo.operating_system}`);
-          console.log(`   - browser: ${deviceInfo.browser}`);
-          console.log(`   - device_id: ${deviceInfo.device_id}`);
           
           try {
-            await callApiServerSide("subscribe_user", user.id, token.accessToken, deviceInfo, "POST");
-            console.log(`✅ [NextAuth JWT] subscribe_user API call completed`);
+            const accessToken = token.accessToken;
+            if (accessToken && typeof accessToken === 'string') {
+              await callApiServerSide("subscribe_user", user.id, accessToken, deviceInfo, "POST");
+              console.log(`✅ [NextAuth JWT] subscribe_user API call completed`);
+            }
           } catch (error) {
             // Don't fail login if subscribe_user fails, just log it
-            console.error('❌ [NextAuth JWT] Failed to call subscribe_user:', error);
+            sendError(user.id, "Failed to call subscribe_user", error);
           }
 
           
@@ -358,6 +377,14 @@ export const authOptions: NextAuthOptions = {
           session.user.provider = token.provider; // Attach provider to session
           session.user.error = token.error; // Attach any token errors
           
+          // If beta access was denied, include the error details
+          if (token.error === "BetaAccessDenied") {
+            session.user.betaMessage = token.betaMessage;
+            session.user.needsRegistration = token.needsRegistration;
+            session.user.needsVerification = token.needsVerification;
+            session.error = "BetaAccessDenied"; // Mark session as errored
+          }
+          
        
         }
       } catch (error) {
@@ -382,10 +409,6 @@ const callApiServerSide = async (
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
     
-    console.log(`🔧 [callApiServerSide] Preparing ${endpoint} API call:`);
-    console.log(`   - user_id: ${user_id}`);
-    console.log(`   - deviceInfo received:`, deviceInfo);
-    
     // Add device info to the payload with proper fallbacks
     const payloadWithDeviceInfo = {
       user_id: user_id,
@@ -398,8 +421,6 @@ const callApiServerSide = async (
       user_agent: deviceInfo?.user_agent || "",
       operating_system_version: deviceInfo?.operating_system_version || "",
     };
-    
-    console.log(`📦 [callApiServerSide] Final payload:`, payloadWithDeviceInfo);
     
     const response = await fetch(`${baseUrl}/api/${endpoint}`, {
       method: method,
@@ -417,74 +438,6 @@ const callApiServerSide = async (
     }
   } catch (error) {
     return null;
-  }
-};
-
-// Handle user login and send data to backend
-const handleLogin = async (
-  user_id: string,
-  accessToken: string,
-  deviceInfo: any = null,
-  req?: any
-) => {
-  
-  try {
-    // If no deviceInfo provided, try to get it from stored device info
-    let finalDeviceInfo = deviceInfo;
-    
-    if (!finalDeviceInfo) {
-      // Try to get device info from the global storage (set by client-side)
-      if (global.pendingDeviceIds && global.pendingDeviceIds.size > 0) {
-        const now = Date.now();
-        let mostRecentEntry = null;
-        let mostRecentTime = 0;
-
-        for (const [, entry] of global.pendingDeviceIds.entries()) {
-          if (now <= entry.expires && entry.timestamp > mostRecentTime) {
-            mostRecentEntry = entry;
-            mostRecentTime = entry.timestamp;
-          }
-        }
-
-        if (mostRecentEntry) {
-          finalDeviceInfo = {
-            device_id: mostRecentEntry.device_id,
-            operating_system: mostRecentEntry.operating_system,
-            browser: mostRecentEntry.browser,
-            device_type: mostRecentEntry.device_type,
-            device_name: mostRecentEntry.device_name,
-            ip_address: mostRecentEntry.ip_address,
-            user_agent: req?.headers?.['user-agent'] || '',
-            operating_system_version: mostRecentEntry.operating_system_version || ''
-          };
-        }
-      }
-      
-      // Fallback device info if nothing is available
-      if (!finalDeviceInfo) {
-        finalDeviceInfo = {
-          device_id: `fallback_${Date.now()}`,
-          operating_system: 'unknown',
-          browser: 'unknown',
-          device_type: 'desktop',
-          device_name: 'Unknown Device',
-          ip_address: 'unknown',
-          user_agent: req?.headers?.['user-agent'] || '',
-          operating_system_version: ''
-        };
-      }
-    }
-    
-    // Add user agent if available from request
-    if (req && finalDeviceInfo) {
-      finalDeviceInfo.user_agent = req.headers?.['user-agent'] || finalDeviceInfo.user_agent || '';
-    }
-    
-    // Call backend API to log the user login using server-side function
-    await callApiServerSide("user_login", user_id, accessToken, finalDeviceInfo, "POST");
-
-    
-  } catch (error) {
   }
 };
 

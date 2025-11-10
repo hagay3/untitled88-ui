@@ -33,7 +33,7 @@ const colorPresets = [
 
 export default function InlineTextToolbar({
   block,
-  position,
+  position: _position,
   onMoveUp,
   onMoveDown,
   onDelete,

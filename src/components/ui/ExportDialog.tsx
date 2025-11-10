@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Button } from './button';
 import { apiClient } from '@/utils/apiClient';
+import { sendError } from '@/utils/actions';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ interface ExportOptions {
 }
 
 export default function ExportDialog({ isOpen, onClose, onExport, email, getHtmlContent }: ExportDialogProps) {
-  const [options, setOptions] = useState<ExportOptions>({
+  const [options, _setOptions] = useState<ExportOptions>({
     filename: email?.subject ? 
       email.subject.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-').toLowerCase() : 
       'email-template'
@@ -62,13 +63,12 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
       });
 
       if (!response.ok) {
-        console.error(`Failed to create share link: ${response.status} ${response.statusText}`);
+        sendError("unknown", "Failed to create share link", response.statusText);
         return;
       }
 
       const data = await response.json();
       
-      console.log('Share API response:', data); // Debug log
       
       if (data.success) {
         // Get the relative path from response and add current host/port prefix
@@ -78,31 +78,23 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
           // Add current host and port to the relative path
           const baseUrl = window.location.origin; // Gets http://localhost:3000 or production domain
           shareableUrl = `${baseUrl}${data.shareable_link}`;
-          console.log('Constructed full URL:', shareableUrl);
         } else if (data.shareable_id) {
           // Fallback: construct from shareable_id
           const baseUrl = window.location.origin;
           shareableUrl = `${baseUrl}/share/${data.shareable_id}`;
-          console.log('Constructed URL from shareable_id:', shareableUrl);
         }
-        
-        console.log('Final share URL:', shareableUrl); // Debug log
-        
+                
         if (shareableUrl) {
           // Open the share link in a new tab
           window.open(shareableUrl, '_blank');
         } else {
-          console.error('No valid URL found in response:', data);
+          //
         }
       } else {
-        console.error('Failed to create share link:', data);
-        console.error('Response data keys:', Object.keys(data));
-        console.error('Success value:', data.success);
-        console.error('Full URL value:', data.full_url);
-        console.error('Share ID value:', data.share_id);
+        sendError("unknown", "Failed to create share link", data);
       }
     } catch (error) {
-      console.error('Error creating share link:', error);
+      sendError("unknown", "Failed to create share link", error);
     } finally {
       setIsCreatingShareLink(false);
     }
@@ -127,7 +119,7 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
       setCopyJsonSuccess(true);
       setTimeout(() => setCopyJsonSuccess(false), 2000);
     } catch (error) {
-      console.error('Failed to copy JSON:', error);
+      sendError("unknown", "Failed to copy JSON", error);
     }
   };
 

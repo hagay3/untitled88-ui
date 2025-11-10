@@ -34,7 +34,7 @@ export default async function handler(
     }
 
     // Get Auth0 Management API token
-    const tokenResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+    const tokenResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ export default async function handler(
       body: JSON.stringify({
         client_id: process.env.AUTH0_M2M_CLIENT_ID,
         client_secret: process.env.AUTH0_M2M_CLIENT_SECRET,
-        audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+        audience: `https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/api/v2/`,
         grant_type: 'client_credentials',
       }),
     });
@@ -54,7 +54,7 @@ export default async function handler(
     const tokenData: Auth0ManagementToken = await tokenResponse.json();
 
     // First, get the connection ID for Username-Password-Authentication
-    const connectionsResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/connections?name=Username-Password-Authentication`, {
+    const connectionsResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/api/v2/connections?name=Username-Password-Authentication`, {
       headers: {
         'Authorization': `Bearer ${tokenData.access_token}`,
       },
@@ -72,7 +72,7 @@ export default async function handler(
     const connectionId = connections[0].id;
 
     // Send password reset email via Auth0 Management API
-    const resetResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/tickets/password-change`, {
+    const resetResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/api/v2/tickets/password-change`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

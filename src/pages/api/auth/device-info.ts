@@ -11,6 +11,8 @@ declare global {
     ip_address: string;
     timestamp: number;
     expires: number;
+    user_agent: string;
+    operating_system_version: string;
   }> | undefined;
 }
 
@@ -64,6 +66,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       ip_address: ip_address || 'unknown',
       timestamp: now,
       expires: now + (5 * 60 * 1000), // 5 minutes
+      user_agent: '',
+      operating_system_version: ''
     };
 
     // Use device_id as key to allow updates for the same device

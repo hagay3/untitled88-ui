@@ -14,8 +14,7 @@ type BetaStep = 'registration' | 'verification';
 
 export default function BetaPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const user = session?.user;
+  useSession(); // Ensure session is initialized
   const [currentStep, setCurrentStep] = useState<BetaStep>('registration');
 
   const handleRegistrationSuccess = () => {
@@ -42,7 +41,7 @@ export default function BetaPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-6">
             <img 
-              src="/logo-untitled88.png" 
+              src="/logo-transparent.png" 
               alt="Untitled88" 
               className="h-12 w-auto mx-auto"
             />

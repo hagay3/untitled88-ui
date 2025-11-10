@@ -16,8 +16,8 @@ export const ShareDialog: React.FC<ShareDialogProps> = ({
   onClose,
   emailSubject,
   shareableLink,
-  onCreateNewLink,
-  isCreatingLink
+  onCreateNewLink: _onCreateNewLink,
+  isCreatingLink: _isCreatingLink
 }) => {
   const [copySuccess, setCopySuccess] = useState(false);
 

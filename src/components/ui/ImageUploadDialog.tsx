@@ -178,11 +178,6 @@ export default function ImageUploadDialog({
     }
   }, [onImageUploaded, handleClose]);
 
-  const handleUpload = useCallback(async () => {
-    if (!compressionResult?.file) return;
-    await handleUploadInternal(compressionResult);
-  }, [compressionResult, handleUploadInternal]);
-
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -209,14 +204,18 @@ export default function ImageUploadDialog({
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      handleFileSelect(file);
+      if (file) {
+        handleFileSelect(file);
+      }
     }
   }, [handleFileSelect]);
 
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      handleFileSelect(file);
+      if (file) {
+        handleFileSelect(file);
+      }
     }
   }, [handleFileSelect]);
 

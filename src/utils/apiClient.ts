@@ -203,8 +203,8 @@ class SecureApiClient {
   private async refreshSession(): Promise<void> {
     try {
       
-      // Get current session first to compare
-      const currentSession = await getSession();
+      // Get current session first (needed for NextAuth token lifecycle)
+      await getSession();
 
       
       // Call our custom refresh endpoint

@@ -8,7 +8,6 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SEO from "@/components/SEO";
 import { prepareDeviceInfoForLogin } from "@/utils/deviceInfo";
-import { BetaWall } from "@/components/BetaWall";
 
 export default function Login() {
   const { data: session, status } = useSession();
@@ -23,12 +22,127 @@ export default function Login() {
   const [success, setSuccess] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [showBetaDialog, setShowBetaDialog] = useState(false);
+  const [betaDialogType, setBetaDialogType] = useState<'registration' | 'verification' | 'pending'>('registration');
+  const [betaStatus, setBetaStatus] = useState<{
+    checked: boolean;
+    inBeta: boolean;
+    canLogin: boolean;
+    needsVerification: boolean;
+    needsRegistration: boolean;
+    message: string;
+  }>({
+    checked: false,
+    inBeta: false,
+    canLogin: false,
+    needsVerification: false,
+    needsRegistration: false,
+    message: ''
+  });
+
+  // Check if email is in beta before allowing sign in
+  const checkEmailInBeta = async (emailToCheck: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/beta/check-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: emailToCheck }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setBetaStatus({
+          checked: true,
+          inBeta: data.in_beta || false,
+          canLogin: data.can_login || false,
+          needsVerification: data.needs_verification || false,
+          needsRegistration: data.needs_registration || false,
+          message: data.message || ''
+        });
+
+        // If user needs to register or verify, show appropriate error
+        if (data.needs_registration) {
+          setError("You need to join the beta program first. Please register for beta access.");
+          return false;
+        }
+
+        if (data.needs_verification) {
+          setError("Please verify your email first. Check your inbox for the verification code.");
+          return false;
+        }
+
+        if (!data.can_login) {
+          setError("Your beta access is pending approval. We'll notify you once approved.");
+          return false;
+        }
+
+        // User can proceed with login
+        return true;
+      } else {
+        setError(data.error || 'Failed to check beta status');
+        return false;
+      }
+    } catch (error) {
+      setError('Failed to verify beta access. Please try again.');
+      return false;
+    }
+  };
 
   useEffect(() => {
-    // Don't redirect if already logged in - let them stay on current page
-    // They'll naturally navigate away when ready
-    if (session) {
-      // User is already logged in, no redirect needed
+    // Check if user has beta access error after OAuth
+    if (session?.error === "BetaAccessDenied") {
+      const user = session.user as any;
+      
+      // Determine dialog type and show dialog
+      if (user?.needsRegistration) {
+        setBetaDialogType('registration');
+        setShowBetaDialog(true);
+        setBetaStatus({
+          checked: true,
+          inBeta: false,
+          canLogin: false,
+          needsVerification: false,
+          needsRegistration: true,
+          message: user?.betaMessage || ''
+        });
+      } else if (user?.needsVerification) {
+        setBetaDialogType('verification');
+        setShowBetaDialog(true);
+        setBetaStatus({
+          checked: true,
+          inBeta: true,
+          canLogin: false,
+          needsVerification: true,
+          needsRegistration: false,
+          message: user?.betaMessage || ''
+        });
+      } else {
+        setBetaDialogType('pending');
+        setShowBetaDialog(true);
+        setBetaStatus({
+          checked: true,
+          inBeta: true,
+          canLogin: false,
+          needsVerification: false,
+          needsRegistration: false,
+          message: user?.betaMessage || ''
+        });
+      }
+      
+      // Sign out the user
+      import('next-auth/react').then(({ signOut }) => {
+        signOut({ redirect: false });
+      });
+      
+      return;
+    }
+    
+    // If user is successfully logged in (no errors), redirect to dashboard
+    if (session && !session.error) {
+      router.push("/dashboard");
       return;
     }
     
@@ -54,13 +168,16 @@ export default function Login() {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    setError("");
     
     try {
       // Prepare device info before authentication
       await prepareDeviceInfoForLogin();
       
+      // Set callback to login page so we can show beta dialog if needed
+      // Successful logins will be redirected to dashboard by the useEffect
       await signIn("auth0", { 
-        callbackUrl: "/dashboard",
+        callbackUrl: "/login",
         connection: "google-oauth2"
       });
     } catch (error) {
@@ -97,6 +214,12 @@ export default function Login() {
     if (isSignUp && password.length < 8) {
       setError("Password must be at least 8 characters long");
       return;
+    }
+    
+    // Check beta status before proceeding
+    const canProceed = await checkEmailInBeta(email);
+    if (!canProceed) {
+      return; // Error message already set in checkEmailInBeta
     }
     
     setIsLoading(true);
@@ -234,8 +357,8 @@ export default function Login() {
     );
   }
 
-  // If already logged in, show a message instead of the login form
-  if (session) {
+  // If already logged in (and no errors), show a message instead of the login form
+  if (session && !session.error) {
     return (
       <>
         <SEO 
@@ -302,8 +425,7 @@ export default function Login() {
         keywords="sign in, login, email marketing dashboard, AI email designer"
         url="/login"
       />
-      <BetaWall requireBetaAccess={true}>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md shadow-lg border-0">
           <CardHeader className="text-center">
             <div className="mb-8 flex flex-col items-center gap-0">
@@ -400,6 +522,20 @@ export default function Login() {
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
                     {error}
+                    {betaStatus.needsRegistration && (
+                      <div className="mt-2">
+                        <Link href="/beta" className="text-blue-600 hover:text-blue-700 underline font-medium">
+                          Click here to join the beta program
+                        </Link>
+                      </div>
+                    )}
+                    {betaStatus.needsVerification && (
+                      <div className="mt-2">
+                        <Link href="/beta" className="text-blue-600 hover:text-blue-700 underline font-medium">
+                          Click here to verify your email
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -541,6 +677,20 @@ export default function Login() {
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
                     {error}
+                    {betaStatus.needsRegistration && (
+                      <div className="mt-2">
+                        <Link href="/beta" className="text-blue-600 hover:text-blue-700 underline font-medium">
+                          Click here to join the beta program
+                        </Link>
+                      </div>
+                    )}
+                    {betaStatus.needsVerification && (
+                      <div className="mt-2">
+                        <Link href="/beta" className="text-blue-600 hover:text-blue-700 underline font-medium">
+                          Click here to verify your email
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -613,8 +763,98 @@ export default function Login() {
             )}
           </CardContent>
         </Card>
-        </div>
-      </BetaWall>
+
+        {/* Beta Access Dialog */}
+        {showBetaDialog && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="glass-card max-w-md w-full p-8 animate-in fade-in duration-300">
+              {/* Icon */}
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                {betaDialogType === 'registration' ? (
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                ) : betaDialogType === 'verification' ? (
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+
+              {/* Title and Message */}
+              <h2 className="text-2xl font-bold text-black text-center mb-3">
+                {betaDialogType === 'registration' 
+                  ? 'Beta Access Required' 
+                  : betaDialogType === 'verification'
+                  ? 'Email Verification Required'
+                  : 'Pending Approval'}
+              </h2>
+
+              <p className="text-gray-600 text-center mb-6">
+                {betaDialogType === 'registration' 
+                  ? 'You need to join our beta program before you can sign in. It only takes a minute to register!'
+                  : betaDialogType === 'verification'
+                  ? 'Please verify your email address with the access code we sent you before signing in.'
+                  : 'Your beta access request is pending approval. We\'ll notify you once you\'re approved!'}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {betaDialogType === 'registration' && (
+                  <Button
+                    onClick={() => {
+                      setShowBetaDialog(false);
+                      router.push('/beta');
+                    }}
+                    className="btn-primary w-full"
+                  >
+                    Join Beta Program
+                  </Button>
+                )}
+
+                {betaDialogType === 'verification' && (
+                  <Button
+                    onClick={() => {
+                      setShowBetaDialog(false);
+                      router.push('/beta');
+                    }}
+                    className="btn-primary w-full"
+                  >
+                    Verify Email
+                  </Button>
+                )}
+
+                {betaDialogType === 'pending' && (
+                  <Button
+                    onClick={() => setShowBetaDialog(false)}
+                    className="btn-primary w-full"
+                  >
+                    Got It
+                  </Button>
+                )}
+
+                <Button
+                  onClick={() => setShowBetaDialog(false)}
+                  className="btn-ghost w-full"
+                >
+                  Close
+                </Button>
+              </div>
+
+              {/* Additional Info */}
+              {betaDialogType === 'registration' && (
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Already registered? <Link href="/beta" className="text-blue-600 hover:text-blue-700 underline">Enter verification code</Link>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }

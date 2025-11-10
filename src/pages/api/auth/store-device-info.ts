@@ -61,10 +61,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
     global.pendingDeviceIds.set(deviceKey, deviceEntry);
 
-    console.log(`📱 Device info stored for authentication: ${deviceInfo.device_name} (${deviceInfo.operating_system})`);
-    console.log(`🔍 Total stored entries: ${global.pendingDeviceIds.size}`);
-    console.log(`⏰ Entry expires at: ${new Date(deviceEntry.expires).toISOString()}`);
-
     res.status(200).json({ 
       success: true, 
       message: 'Device info stored successfully',
@@ -74,7 +70,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
   } catch (error) {
-    console.error('Error storing device info:', error);
-    res.status(500).json({ error: 'Failed to store device info' });
+    
+    res.status(500).json({ error: 'Failed' });
   }
 }

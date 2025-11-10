@@ -10,6 +10,17 @@ import ImageUploadDialog from '@/components/ui/ImageUploadDialog';
 
 interface ImageBlockComponentProps extends BaseEmailBlockProps {
   block: ImageBlock;
+  availableLogos?: Array<{
+    url: string;
+    thumbnail_url: string;
+    width?: number;
+    height?: number;
+    size: number;
+    format: string;
+    index: number;
+    original_filename: string;
+    source_url?: string;
+  }>;
 }
 
 export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
@@ -22,7 +33,8 @@ export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
   onMoveDown,
   canMoveUp,
   canMoveDown,
-  onAlignmentChange
+  onAlignmentChange,
+  availableLogos = []
 }) => {
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -67,8 +79,6 @@ export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
   
   // Get alignment from styles or default to center
   const textAlignment = block.styles.textAlign || 'center';
-  const alignmentClass = textAlignment === 'left' ? 'text-left' : 
-                        textAlignment === 'right' ? 'text-right' : 'text-center';
 
   // Get image-specific alignment classes
   const getImageAlignmentClass = () => {
@@ -220,6 +230,52 @@ export const ImageBlockComponent: React.FC<ImageBlockComponentProps> = ({
                     Make the image clickable
                   </p>
                 </div>
+
+                {/* Available Logo Options */}
+                {availableLogos && availableLogos.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Available Logo Options ({availableLogos.length})
+                    </label>
+                    <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50">
+                      {availableLogos.map((logo, index) => (
+                        <button
+                          key={`${logo.url}-${index}`}
+                          onClick={() => setEditingImageUrl(logo.url)}
+                          className={`relative group border-2 rounded-md p-2 transition-all hover:border-blue-500 ${
+                            editingImageUrl === logo.url ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'
+                          }`}
+                          title={`${logo.original_filename} - ${logo.format} (${(logo.size / 1024).toFixed(1)}KB)`}
+                        >
+                          <div className="aspect-square relative overflow-hidden rounded bg-white flex items-center justify-center">
+                            <img
+                              src={logo.thumbnail_url || logo.url}
+                              alt={`Logo option ${index + 1}`}
+                              className="max-w-full max-h-full object-contain"
+                              onError={(e) => {
+                                // Fallback to placeholder on error
+                                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"%3E%3Cpath strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/%3E%3C/svg%3E';
+                              }}
+                            />
+                          </div>
+                          <div className="mt-1 text-xs text-center text-gray-600 truncate">
+                            {logo.format} - {(logo.size / 1024).toFixed(0)}KB
+                          </div>
+                          {editingImageUrl === logo.url && (
+                            <div className="absolute top-1 right-1 bg-blue-600 text-white rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Click on a logo to select it
+                    </p>
+                  </div>
+                )}
 
                 {/* Preview */}
                 {editingImageUrl && (

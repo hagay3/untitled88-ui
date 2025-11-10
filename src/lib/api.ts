@@ -209,18 +209,6 @@ export const aiAPI = {
     return apiRequest(`/ai/usage-stats${query ? `?${query}` : ''}`);
   },
 
-  // New AI Email Generation Methods
-  generateEmail: async (data: {
-    user_prompt: string;
-    conversation_id?: number;
-    email_type?: 'create' | 'update';
-    existing_email_html?: string;
-  }) => {
-    return apiRequest('/ai/generate-email', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
 
   quickEmailGeneration: async (data: {
     user_prompt: string;
@@ -254,8 +242,8 @@ export const aiAPI = {
     return apiRequest(`/ai/email/${messageId}`);
   },
 
-  getDailyUsage: async () => {
-    return apiRequest('/ai/daily-usage');
+  getUserUsage: async () => {
+    return apiRequest('/ai/user-usage');
   },
 
   getChatHistory: async (limit: number = 50) => {
@@ -615,6 +603,25 @@ export async function updateEmailContent(
     };
   }
 }
+
+// Image Search API
+export const imageSearchAPI = {
+  /**
+   * Search for images using Google Image Search and upload to S3
+   * @param searchTerm Search query for images
+   * @param limit Maximum number of images (1-10, default 5)
+   * @returns Object containing uploaded image URLs
+   */
+  searchImages: async (searchTerm: string, limit: number = 5) => {
+    return apiRequest('/image-search', {
+      method: 'POST',
+      body: JSON.stringify({
+        search_term: searchTerm,
+        limit: Math.min(Math.max(1, limit), 10) // Between 1 and 10
+      })
+    });
+  }
+};
 
 // Text validation constants
 export const TEXT_LIMITS = {

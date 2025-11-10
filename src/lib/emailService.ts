@@ -85,7 +85,7 @@ The Untitled88 Team
       };
 
       // Send email
-      const info = await this.transporter.sendMail(mailOptions);
+      await this.transporter.sendMail(mailOptions);
       
 
       return true;
@@ -113,7 +113,7 @@ The Untitled88 Team
       };
 
       // Send email
-      const info = await this.transporter.sendMail(mailOptions);
+      await this.transporter.sendMail(mailOptions);
       
 
       return true;

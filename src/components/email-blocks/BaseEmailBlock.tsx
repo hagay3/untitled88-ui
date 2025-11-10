@@ -13,6 +13,7 @@ export interface BaseEmailBlockProps {
   onSelect?: (blockId: string) => void;
   onUpdate?: (blockId: string, updates: Partial<EmailBlock>) => void;
   onDelete?: (blockId: string) => void;
+  onClone?: (blockId: string) => void;
   onMoveUp?: (blockId: string) => void;
   onMoveDown?: (blockId: string) => void;
   canMoveUp?: boolean;
@@ -23,6 +24,7 @@ export interface BaseEmailBlockProps {
 export interface BlockActionToolbarProps {
   blockId: string;
   onDelete: (blockId: string) => void;
+  onClone?: (blockId: string) => void;
   onMoveUp?: (blockId: string) => void;
   onMoveDown?: (blockId: string) => void;
   canMoveUp?: boolean;
@@ -72,7 +74,6 @@ export const blockStylesToCss = (styles: BlockStyles): React.CSSProperties => {
 
   // Direct style mappings
   if (styles.textColor) cssStyles.color = styles.textColor;
-  if (styles.backgroundColor) cssStyles.backgroundColor = styles.backgroundColor;
   if (styles.borderColor) cssStyles.borderColor = styles.borderColor;
   if (styles.fontFamily) cssStyles.fontFamily = styles.fontFamily;
   if (styles.fontWeight) cssStyles.fontWeight = styles.fontWeight;
@@ -87,6 +88,7 @@ export const blockStylesToCss = (styles: BlockStyles): React.CSSProperties => {
 export const BlockActionToolbar: React.FC<BlockActionToolbarProps> = ({
   blockId,
   onDelete,
+  onClone,
   onMoveUp,
   onMoveDown,
   canMoveUp = false,
@@ -163,6 +165,18 @@ export const BlockActionToolbar: React.FC<BlockActionToolbarProps> = ({
       )}
       
       <div className="w-px h-4 bg-gray-300 mx-1" />
+      
+      {onClone && (
+        <button
+          onClick={() => onClone(blockId)}
+          className="p-1 text-blue-500 hover:text-blue-700"
+          title="Clone this block (duplicate with same content and styles)"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
+      )}
       
       <button
         onClick={() => onDelete(blockId)}

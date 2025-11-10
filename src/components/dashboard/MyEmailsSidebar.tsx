@@ -73,7 +73,7 @@ const MyEmailsSidebar: React.FC<MyEmailsSidebarProps> = ({
         }
       }
     } catch (error) {
-      console.warn('Failed to extract header image:', error);
+      // Failed to extract header image
     }
     return null;
   };
@@ -113,7 +113,7 @@ const MyEmailsSidebar: React.FC<MyEmailsSidebarProps> = ({
       try {
         emailHtml = emailConverter.jsonToHtml(emailData.email_json);
       } catch (error) {
-        console.warn('Failed to convert JSON to HTML:', error);
+        // Failed to convert JSON to HTML
       }
     }
 

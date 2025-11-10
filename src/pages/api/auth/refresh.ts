@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Fallback to token validation if no refresh token
         
         try {
-          const userInfoResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/userinfo`, {
+          const userInfoResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/userinfo`, {
             headers: {
               'Authorization': `Bearer ${session.user.accessToken}`,
             }
@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         // We have a refresh token, use it to get new tokens
         try {
-          const refreshResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+          const refreshResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/oauth/token`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
 
           if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
+            await refreshResponse.json(); // Consume the response
             
             return res.status(200).json({
               success: true,
@@ -115,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               user: session.user // NextAuth will handle the token update automatically
             });
           } else {
-            const errorData = await refreshResponse.json();
+            await refreshResponse.json(); // Consume the error response
             
             return res.status(401).json({ 
               error: 'Refresh token expired', 

@@ -46,7 +46,7 @@ export default async function handler(
     }
 
     // Get Auth0 Management API token
-    const tokenResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+    const tokenResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export default async function handler(
       body: JSON.stringify({
         client_id: process.env.AUTH0_M2M_CLIENT_ID,
         client_secret: process.env.AUTH0_M2M_CLIENT_SECRET,
-        audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+        audience: `https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/api/v2/`,
         grant_type: 'client_credentials',
       }),
     });
@@ -66,7 +66,7 @@ export default async function handler(
     const tokenData: Auth0ManagementToken = await tokenResponse.json();
 
     // Create user in Auth0
-    const createUserResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
+    const createUserResponse = await fetch(`https://${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}/api/v2/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

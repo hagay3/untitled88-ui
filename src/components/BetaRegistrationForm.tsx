@@ -18,6 +18,7 @@ interface FormData {
   company: string;
   role: string;
   reason: string;
+  country: string;
 }
 
 export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
@@ -30,7 +31,8 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
     name: '',
     company: '',
     role: '',
-    reason: ''
+    reason: '',
+    country: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,6 +168,76 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
             placeholder="Your Company"
             disabled={isSubmitting}
           />
+        </div>
+
+        {/* Country Field */}
+        <div>
+          <label htmlFor="country" className="block text-sm font-medium text-black mb-2">
+            Country
+          </label>
+          <select
+            id="country"
+            name="country"
+            value={formData.country}
+            onChange={handleInputChange}
+            className="glass-input w-full px-4 py-3 text-black"
+            disabled={isSubmitting}
+          >
+            <option value="">Select your country</option>
+            <option value="United States">United States</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Canada">Canada</option>
+            <option value="Australia">Australia</option>
+            <option value="Germany">Germany</option>
+            <option value="France">France</option>
+            <option value="Spain">Spain</option>
+            <option value="Italy">Italy</option>
+            <option value="Netherlands">Netherlands</option>
+            <option value="Belgium">Belgium</option>
+            <option value="Switzerland">Switzerland</option>
+            <option value="Austria">Austria</option>
+            <option value="Sweden">Sweden</option>
+            <option value="Norway">Norway</option>
+            <option value="Denmark">Denmark</option>
+            <option value="Finland">Finland</option>
+            <option value="Poland">Poland</option>
+            <option value="Ireland">Ireland</option>
+            <option value="Portugal">Portugal</option>
+            <option value="Greece">Greece</option>
+            <option value="Czech Republic">Czech Republic</option>
+            <option value="Romania">Romania</option>
+            <option value="Hungary">Hungary</option>
+            <option value="Israel">Israel</option>
+            <option value="India">India</option>
+            <option value="Japan">Japan</option>
+            <option value="South Korea">South Korea</option>
+            <option value="Singapore">Singapore</option>
+            <option value="Hong Kong">Hong Kong</option>
+            <option value="China">China</option>
+            <option value="Brazil">Brazil</option>
+            <option value="Mexico">Mexico</option>
+            <option value="Argentina">Argentina</option>
+            <option value="Chile">Chile</option>
+            <option value="Colombia">Colombia</option>
+            <option value="South Africa">South Africa</option>
+            <option value="Nigeria">Nigeria</option>
+            <option value="Kenya">Kenya</option>
+            <option value="Egypt">Egypt</option>
+            <option value="United Arab Emirates">United Arab Emirates</option>
+            <option value="Saudi Arabia">Saudi Arabia</option>
+            <option value="Turkey">Turkey</option>
+            <option value="Russia">Russia</option>
+            <option value="Ukraine">Ukraine</option>
+            <option value="New Zealand">New Zealand</option>
+            <option value="Indonesia">Indonesia</option>
+            <option value="Malaysia">Malaysia</option>
+            <option value="Thailand">Thailand</option>
+            <option value="Vietnam">Vietnam</option>
+            <option value="Philippines">Philippines</option>
+            <option value="Pakistan">Pakistan</option>
+            <option value="Bangladesh">Bangladesh</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
 
         {/* Role Field */}

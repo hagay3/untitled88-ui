@@ -62,7 +62,7 @@ export default function EmailBuilder({ email: _email, onEmailUpdate: _onEmailUpd
   ];
 
 
-  const handleStyleChange = (property: string, value: string) => {
+  const handleStyleChange = (_property: string, _value: string) => {
     // Update element styles
   };
 

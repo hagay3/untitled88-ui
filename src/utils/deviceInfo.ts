@@ -3,6 +3,8 @@
  * Captures and manages device information for authentication tracking
  */
 
+import { sendError } from "./actions";
+
 export interface DeviceInfo {
   device_id: string;
   operating_system: string;
@@ -59,19 +61,19 @@ function getOperatingSystem(): { os: string; version: string } {
   
   if (userAgent.includes('Mac OS X')) {
     const match = userAgent.match(/Mac OS X (\d+[._]\d+[._]\d+)/);
-    const version = match ? match[1].replace(/_/g, '.') : 'Unknown';
+    const version = match && match[1] ? match[1].replace(/_/g, '.') : 'Unknown';
     return { os: 'mac', version };
   }
   
   if (userAgent.includes('Linux')) return { os: 'linux', version: 'Unknown' };
   if (userAgent.includes('Android')) {
     const match = userAgent.match(/Android (\d+[.\d]*)/);
-    const version = match ? match[1] : 'Unknown';
+    const version = match && match[1] ? match[1] : 'Unknown';
     return { os: 'android', version };
   }
   if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
     const match = userAgent.match(/OS (\d+[_\d]*)/);
-    const version = match ? match[1].replace(/_/g, '.') : 'Unknown';
+    const version = match && match[1] ? match[1].replace(/_/g, '.') : 'Unknown';
     return { os: 'ios', version };
   }
   
@@ -121,7 +123,7 @@ function getDeviceName(): string {
  */
 async function getIpAddress(): Promise<string> {
   try {
-    const response = await fetch('https://ipapi.co/ip/', { timeout: 5000 });
+    const response = await fetch('https://ipapi.co/ip/');
     const ip = await response.text();
     return ip.trim() || 'unknown';
   } catch (error) {
@@ -160,7 +162,7 @@ export async function storeDeviceInfoForAuth(): Promise<void> {
     localStorage.setItem('auth_device_info', JSON.stringify(deviceInfo));
     localStorage.setItem('auth_device_info_timestamp', Date.now().toString());
   } catch (error) {
-    console.error('Failed to store device info:', error);
+    //
   }
 }
 
@@ -184,7 +186,7 @@ export function getStoredDeviceInfo(): DeviceInfo | null {
     
     return JSON.parse(stored);
   } catch (error) {
-    console.error('Failed to retrieve device info:', error);
+    
     return null;
   }
 }
@@ -214,9 +216,8 @@ export async function prepareDeviceInfoForLogin(): Promise<void> {
       body: JSON.stringify(deviceInfo),
     });
     
-    console.log('📱 Device info prepared for login:', deviceInfo.device_name);
   } catch (error) {
-    console.warn('Failed to prepare device info for login:', error);
+    sendError("unknown", "Failed to prepare device info for login", error);
     // Don't throw error - login should continue even if device info fails
   }
 }

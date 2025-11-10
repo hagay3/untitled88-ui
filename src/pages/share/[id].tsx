@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useSession } from 'next-auth/react';
 import { emailConverter } from '@/utils/EmailConverter';
+import { sendError } from '@/utils/actions';
 
 interface SharedEmail {
   user_id: string;
@@ -42,7 +43,7 @@ export default function SharePage() {
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
-          const errorText = await response.text();
+          await response.text(); // Consume the response
           setError(`Failed to load shared email: ${response.status} ${response.statusText}`);
           return;
         }
@@ -165,7 +166,7 @@ export default function SharePage() {
           jsonContent = JSON.parse(jsonContent);
         } catch (parseError) {
           // If parsing fails, use the string as is
-          console.warn('Failed to parse JSON string:', parseError);
+          sendError(sharedEmail.user_id, "Failed to parse JSON string", parseError);
         }
       }
       
@@ -177,7 +178,7 @@ export default function SharePage() {
       setCopyJsonSuccess(true);
       setTimeout(() => setCopyJsonSuccess(false), 2000);
     } catch (error) {
-      console.error('Failed to copy JSON:', error);
+      //
     }
   };
 

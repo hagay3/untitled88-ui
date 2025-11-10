@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import LoadingSpinner from './LoadingSpinner';
@@ -26,10 +27,10 @@ export const BetaWall: React.FC<BetaWallProps> = ({
   const [currentStep, setCurrentStep] = useState<BetaStep>('loading');
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
 
-  // Check beta access on mount and when user changes
+  // Check beta access on mount and when user or session changes
   useEffect(() => {
     checkBetaAccess();
-  }, [user, authLoading]);
+  }, [user, authLoading, session]);
 
   const checkBetaAccess = async () => {
     if (!requireBetaAccess) {
@@ -44,58 +45,76 @@ export const BetaWall: React.FC<BetaWallProps> = ({
     }
 
     try {
-      // Check localStorage first for quick access
-      const localBetaVerified = localStorage.getItem('beta_verified') === 'true';
-      
-      
+      // CRITICAL: If user is authenticated, check their session for beta access errors
       if (user) {
-        // User is authenticated, check server-side beta access
-        try {
-          // Get the session token using next-auth's getSession
-          const { getSession } = await import('next-auth/react');
-          const sessionData = await getSession();
+        // Check if session has beta access denial error
+        const sessionAny = session as any;
+        if (sessionAny?.error === "BetaAccessDenied" || sessionAny?.user?.error === "BetaAccessDenied") {
           
-          // For now, we'll skip the server-side beta check since we don't have a proper token endpoint
-          // Instead, rely on local storage and the verification flow
-          if (sessionData) {
-            // User is authenticated, check local beta verification
-            if (localBetaVerified) {
-              setCurrentStep('granted');
-            } else {
-              setCurrentStep('registration');
-            }
+          
+          // Sign out the user immediately
+          const { signOut } = await import('next-auth/react');
+          await signOut({ redirect: false });
+          
+          // Clear any local storage beta verification
+          localStorage.removeItem('beta_verified');
+          
+          // Determine the appropriate step based on the error details
+          if (sessionAny?.user?.needsRegistration) {
+            setCurrentStep('registration');
+          } else if (sessionAny?.user?.needsVerification) {
+            setCurrentStep('verification');
           } else {
-            // This shouldn't happen since we already checked user exists
-            if (localBetaVerified) {
-              setCurrentStep('granted'); // Changed from 'verification' to 'granted'
-            } else {
-              setCurrentStep('registration');
-            }
+            setCurrentStep('registration'); // Default to registration if unclear
           }
-        } catch (error) {
-          // Fall back to local check on error
-          if (localBetaVerified) {
-            setCurrentStep('granted'); // Changed from 'verification' to 'granted'
+          
+          setIsCheckingAccess(false);
+          return;
+        }
+
+        // If user is authenticated and no beta access error, verify with backend
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/beta/check-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: user.email }),
+          });
+
+          if (response.ok) {
+            const betaData = await response.json();
+                        
+            // Check if user can actually login
+            if (betaData.can_login) {
+              setCurrentStep('granted');
+            } else if (betaData.needs_registration) {
+              setCurrentStep('registration');
+            } else if (betaData.needs_verification) {
+              setCurrentStep('verification');
+            } else {
+              setCurrentStep('registration'); // Default to registration
+            }
           } else {
+            // If API check fails, block access
             setCurrentStep('registration');
           }
+        } catch (error) {
+          // On error, block access by default
+          setCurrentStep('registration');
         }
       } else {
-        // User is not authenticated
+        // User is not authenticated - check localStorage for public pages
+        const localBetaVerified = localStorage.getItem('beta_verified') === 'true';
         if (localBetaVerified) {
-          setCurrentStep('granted'); // Allow access if beta verified
+          setCurrentStep('granted');
         } else {
           setCurrentStep('registration');
         }
       }
     } catch (error) {
-      // On error, check if user has beta verification
-      const localBetaVerified = localStorage.getItem('beta_verified') === 'true';
-      if (localBetaVerified) {
-        setCurrentStep('granted');
-      } else {
-        setCurrentStep('registration');
-      }
+      // On error, block access
+      setCurrentStep('registration');
     } finally {
       setIsCheckingAccess(false);
     }
@@ -130,9 +149,15 @@ export const BetaWall: React.FC<BetaWallProps> = ({
       <div className="w-full max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 gap-4">
             <img 
-              src="/logo-untitled88.png" 
+              src="/logo-transparent.png" 
+              alt="Untitled88" 
+              className="h-12 w-auto -ml-6"
+            />
+            
+            <img 
+              src="/logo-untitled88-text-only.png" 
               alt="Untitled88" 
               className="h-12 w-auto"
             />
@@ -192,15 +217,7 @@ export const BetaWall: React.FC<BetaWallProps> = ({
               Join the Beta Program
             </button>
             
-            <p className="text-sm text-gray-500">
-              Already registered?{' '}
-              <button 
-                onClick={() => router.push('/beta')}
-                className="text-blue-600 hover:text-blue-700 underline"
-              >
-                Enter your access code
-              </button>
-            </p>
+     
           </div>
         </div>
 
@@ -208,9 +225,9 @@ export const BetaWall: React.FC<BetaWallProps> = ({
         <div className="text-center mt-12">
           <p className="text-sm text-gray-500 mb-4">
             Already have an account?{' '}
-            <a href="/login" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/login" className="text-blue-600 hover:text-blue-700 underline">
               Sign in here
-            </a>
+            </Link>
           </p>
           
           <div className="flex justify-center space-x-6 text-xs text-gray-400">

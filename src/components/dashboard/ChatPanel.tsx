@@ -54,6 +54,40 @@ export default function ChatPanel({
   const [timeLeft, setTimeLeft] = useState('');
   const [currentProgressStep, setCurrentProgressStep] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Company URL state
+  const [companyUrl, setCompanyUrl] = useState('');
+  const [isEditingUrl, setIsEditingUrl] = useState(true); // Default to edit mode when empty
+  const [urlError, setUrlError] = useState('');
+  
+  // LocalStorage key for company URL
+  const COMPANY_URL_KEY = 'untitled88_company_url';
+
+  // Load company URL from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedUrl = localStorage.getItem(COMPANY_URL_KEY);
+      if (savedUrl) {
+        setCompanyUrl(savedUrl);
+        setIsEditingUrl(false); // Show in view mode if URL exists
+      }
+    } catch (error) {
+      // Silently handle localStorage errors
+    }
+  }, []);
+  
+  // Save company URL to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (companyUrl.trim()) {
+        localStorage.setItem(COMPANY_URL_KEY, companyUrl.trim());
+      } else {
+        localStorage.removeItem(COMPANY_URL_KEY);
+      }
+    } catch (error) {
+      // Silently handle localStorage errors
+    }
+  }, [companyUrl]);
 
   // Handle initial prompt from homepage
   useEffect(() => {
@@ -61,6 +95,56 @@ export default function ChatPanel({
       setMessage(initialPrompt);
     }
   }, [initialPrompt]);
+  
+  // Validate URL format
+  const validateUrl = (url: string): boolean => {
+    if (!url.trim()) {
+      setUrlError('');
+      return true; // Empty is valid (optional field)
+    }
+    
+    try {
+      // Add protocol if missing
+      const urlToValidate = url.startsWith('http://') || url.startsWith('https://') 
+        ? url 
+        : `https://${url}`;
+      
+      const urlObj = new URL(urlToValidate);
+      
+      // Check if it has a valid domain
+      if (!urlObj.hostname || urlObj.hostname.indexOf('.') === -1) {
+        setUrlError('Please enter a valid URL (e.g., example.com)');
+        return false;
+      }
+      
+      setUrlError('');
+      return true;
+    } catch (e) {
+      setUrlError('Please enter a valid URL (e.g., example.com)');
+      return false;
+    }
+  };
+  
+  // Handle URL save
+  const handleSaveUrl = () => {
+    if (validateUrl(companyUrl)) {
+      setIsEditingUrl(false);
+    }
+  };
+  
+  // Handle URL edit
+  const handleEditUrl = () => {
+    setIsEditingUrl(true);
+    setUrlError('');
+  };
+  
+  // Handle URL clear
+  const handleClearUrl = () => {
+    setCompanyUrl('');
+    setIsEditingUrl(true);
+    setUrlError('');
+    localStorage.removeItem(COMPANY_URL_KEY);
+  };
 
   // Update countdown timer
   useEffect(() => {
@@ -74,12 +158,13 @@ export default function ChatPanel({
         setTimeLeft('');
         return;
       }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      
-      if (hours > 0) {
+      if(days > 0) {
+        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      }else if (hours > 0) {
         setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
       } else if (minutes > 0) {
         setTimeLeft(`${minutes}m ${seconds}s`);
@@ -127,40 +212,37 @@ export default function ChatPanel({
   const handleSend = async () => {
     if (!message.trim() || isGenerating || credits <= 0) return;
 
+    const trimmedMessage = message.trim();
+    
+    // Append company URL to the message if provided
+    let finalMessage = trimmedMessage;
+    
+    if (companyUrl.trim()) {
+      // Ensure URL has https:// prefix
+      let formattedUrl = companyUrl.trim();
+      if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+      
+      finalMessage = `${trimmedMessage}\n\nCompany website url: ${formattedUrl}\n\n`;
+    }
+    
+    // Immediately show user's message in chat (optimistic update)
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`,
       type: 'user',
-      content: message.trim(),
+      content: trimmedMessage, // Show original message without URL in chat
       timestamp: new Date()
     };
-
-    // Add user message to chat history
     setCurrentMessages(prev => [...prev, userMessage]);
     
     // Clear the input immediately
     setMessage('');
 
-    // Add dynamic next steps message
-    const nextStepsMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      type: 'system',
-      content: generateNextSteps(message.trim()),
-      timestamp: new Date()
-    };
-    
-    setCurrentMessages(prev => [...prev, nextStepsMessage]);
-
     try {
-      await onSendMessage(userMessage.content);
+      await onSendMessage(finalMessage); // Send message with URL to backend
     } catch (error: any) {
-      // Add error message to chat
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 2).toString(),
-        type: 'system',
-        content: `Error: ${error.message || 'Failed to generate email. Please try again.'}`,
-        timestamp: new Date()
-      };
-      setCurrentMessages(prev => [...prev, errorMessage]);
+      // Error handling is done in parent component
     }
   };
 
@@ -169,58 +251,6 @@ export default function ChatPanel({
       e.preventDefault();
       handleSend();
     }
-  };
-
-
-  const generateNextSteps = (prompt: string): string => {
-    // Analyze the prompt for key indicators
-    const isWelcome = /welcome|onboard|greeting|hello|intro/i.test(prompt);
-    const isPromo = /sale|discount|offer|promo|deal|special|limited/i.test(prompt);
-    const isNewsletter = /newsletter|update|news|announce|inform/i.test(prompt);
-    const isEvent = /event|webinar|meeting|conference|workshop/i.test(prompt);
-    const isProduct = /product|launch|feature|new|release/i.test(prompt);
-    const hasColors = /color|blue|red|green|brand|style/i.test(prompt);
-    const hasCTA = /button|click|action|cta|link/i.test(prompt);
-    
-    let steps = ["Analyzing your request...", "Generating email structure..."];
-    
-    // Add specific steps based on content analysis
-    if (isWelcome) {
-      steps.push("Creating welcoming tone and onboarding flow...");
-    } else if (isPromo) {
-      steps.push("Designing promotional layout with urgency elements...");
-    } else if (isNewsletter) {
-      steps.push("Structuring newsletter with clear sections...");
-    } else if (isEvent) {
-      steps.push("Adding event details and RSVP elements...");
-    } else if (isProduct) {
-      steps.push("Highlighting product features and benefits...");
-    }
-    
-    if (hasColors) {
-      steps.push("Applying brand colors and visual styling...");
-    }
-    
-    if (hasCTA) {
-      steps.push("Optimizing call-to-action buttons...");
-    }
-    
-    steps.push("Ensuring mobile responsiveness...", "Adding final touches and optimization...");
-    
-    return `**Next Steps:**\n${steps.map((step, i) => `${i + 1}. ${step}`).join('\n')}`;
-  };
-
-  // Add generated email to chat history
-  const addEmailToChat = (emailData: any, userPrompt: string) => {
-    const emailMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'email',
-      content: userPrompt,
-      timestamp: new Date(),
-      emailData: emailData
-    };
-    
-    setCurrentMessages(prev => [...prev, emailMessage]);
   };
 
   // Load conversation history from props
@@ -245,28 +275,24 @@ export default function ChatPanel({
     }
   }, [conversationHistory]);
 
-  // Expose the addEmailToChat method to parent component
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).addEmailToChat = addEmailToChat;
-    }
-  }, []);
-
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Daily Usage Section */}
       <div className="p-4 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Daily Limit</span>
-          <span className="text-lg font-bold text-blue-600">{credits}</span>
+        { credits == 0 && 
+        <div className="text-xs text-red-500">
+          Tokens limit reached
         </div>
-        <div className="text-xs text-gray-500">
-          {credits > 0 ? `${credits} messages left` : 'Daily limit reached'}
-        </div>
+        }
         {credits <= 0 && timeLeft && (
-          <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+          <div className="mt-2 text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded">
             Resets in {timeLeft}
+            <br />
+            Talk to support on discord to upgrade  
+            <br />
+            <a href={process.env.NEXT_PUBLIC_DISCORD_INVIRATION_URL} target="_blank" className="text-blue-500">Join Discord</a>
           </div>
+          
         )}
       </div>
 
@@ -386,6 +412,65 @@ export default function ChatPanel({
 
       {/* Message Input */}
       <div className="p-4 bg-white border-t border-gray-200">
+        {/* Company URL Section */}
+        <div className="mb-3">
+          <div className="flex items-center space-x-2">
+            {isEditingUrl ? (
+              <>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={companyUrl}
+                    onChange={(e) => setCompanyUrl(e.target.value)}
+                    placeholder="https://yourbrand.com | Include your website URL to get the best results"
+                    className={`w-full border ${urlError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    disabled={isGenerating}
+                  />
+                  {urlError && (
+                    <p className="text-xs text-red-500 mt-1">{urlError}</p>
+                  )}
+                </div>
+                <Button
+                  onClick={handleSaveUrl}
+                  disabled={isGenerating}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+                  size="sm"
+                >
+                  Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 flex items-center space-x-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  </svg>
+                  <span className="text-sm text-blue-900 font-medium truncate flex-1">
+                    {companyUrl}
+                  </span>
+                </div>
+                <Button
+                  onClick={handleEditUrl}
+                  disabled={isGenerating}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm"
+                  size="sm"
+                >
+                  Edit
+                </Button>
+                <Button
+                  onClick={handleClearUrl}
+                  disabled={isGenerating}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-sm"
+                  size="sm"
+                >
+                  Clear
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* Message Textarea */}
         <div className="flex space-x-2">
           <textarea
             value={message}
