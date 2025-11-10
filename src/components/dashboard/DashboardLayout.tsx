@@ -21,6 +21,7 @@ import { analyzeEmailIntent, generateClarificationPrompt } from '@/utils/emailIn
 import { downloadHtmlFile, exportEmailWithMetadata } from '@/utils/exportUtils';
 import { updateEmailContent } from '@/lib/api';
 import { emailConverter } from '@/utils/EmailConverter';
+import { sendError } from '@/utils/actions';
 
 interface DashboardLayoutProps {
   initialPrompt?: string;
@@ -289,7 +290,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
           conversationId = conversationData.data.conversation_id;
           setCurrentConversationId(conversationId);
         } else {
-          throw new Error(`Failed to create conversation: ${conversationData.error || conversationData.message || 'Unknown error'}`);
+          sendError(session?.user?.id || "", `Failed to create conversation: ${conversationData.error || conversationData.message || 'Unknown error'}`);
         }
       }
       
@@ -369,7 +370,8 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
         setIsGenerating(false);
         setGenerationProgress('');
       } else {
-        throw new Error(response.message || 'Failed to generate email');
+        const errorMsg = response.message || 'Failed to generate email';
+        await sendError(session?.user?.id || "", errorMsg);
       }
       
     } catch (error: any) {
@@ -444,12 +446,14 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
     setShowTemplateGallery(false);
   };
 
-  const prepareEmailForSending = (htmlContent?: string): string => {
+  const prepareEmailForSending = async (htmlContent?: string): Promise<string> => {
     // Use provided HTML or get from current local state
     const emailHtml = htmlContent || (getExportHtml ? getExportHtml() : currentEmail?.html) || '';
     
     if (!emailHtml) {
-      throw new Error('No email content available for sending');
+      const errorMsg = 'No email content available for sending';
+      await sendError(session?.user?.id || "", errorMsg);
+      return '';
     }
     // Use the same preparation logic as export
     let exportHtml = emailHtml;
@@ -709,7 +713,9 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to save email');
+        const errorMsg = result.error || 'Failed to save email';
+        await sendError(session?.user?.id || "", errorMsg);
+        return;
       }
 
       
@@ -717,8 +723,7 @@ export default function DashboardLayout({ initialPrompt }: DashboardLayoutProps)
       showSuccess('Email saved successfully');
       
     } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to save email');
-      throw error; // Re-throw so the UI can handle the error state
+      sendError(session?.user?.id || "", "Failed to save email");
     }
   };
 

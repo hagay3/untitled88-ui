@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
 import { ImageCompressor, CompressionResult } from '@/utils/imageCompression';
 import { apiClient } from '@/utils/apiClient';
+import { sendError } from '@/utils/actions';
+import { useSession } from 'next-auth/react';
 
 interface ImageUploadDialogProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ export default function ImageUploadDialog({
   onImageUploaded,
   title = 'Upload Image'
 }: ImageUploadDialogProps) {
+  const { data: session } = useSession();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [compressionResult, setCompressionResult] = useState<CompressionResult | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -129,7 +132,15 @@ export default function ImageUploadDialog({
 
       if (!uploadUrlResponse.ok) {
         const errorData = await uploadUrlResponse.json();
-        throw new Error(errorData.error || 'Failed to get upload URL');
+        const errorMsg = errorData.error || 'Failed to get upload URL';
+        await sendError(session?.user?.id || "", errorMsg);
+        setUploadState({
+          status: 'error',
+          progress: 0,
+          message: '',
+          error: errorMsg
+        });
+        return;
       }
 
       const uploadData = await uploadUrlResponse.json();
@@ -151,7 +162,15 @@ export default function ImageUploadDialog({
       });
 
       if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        const errorMsg = `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`;
+        await sendError(session?.user?.id || "", errorMsg);
+        setUploadState({
+          status: 'error',
+          progress: 0,
+          message: '',
+          error: errorMsg
+        });
+        return;
       }
 
       setUploadState({

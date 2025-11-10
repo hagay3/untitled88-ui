@@ -1,4 +1,5 @@
 import { getSession, signOut } from "next-auth/react";
+import { sendError } from "@/utils/actions";
 
 /**
  * Show a confirmation dialog before signing out
@@ -189,9 +190,8 @@ class SecureApiClient {
 
       return response;
     } catch (error: any) {
-      
-      
-      // Handle network errors or other issues
+      // Log error and re-throw
+      sendError("unknown", "Fetch error", error);
       throw error;
     }
   }
@@ -222,19 +222,28 @@ class SecureApiClient {
     
         
         if (refreshData.requiresReauth) {
+          const session = await getSession();
+          const errorMsg = 'Token expired, re-authentication required';
+          await sendError(session?.user?.id || "", errorMsg);
           await showSignOutDialog("/login");
-          throw new Error('Token expired, re-authentication required');
+          return;
         }
       } else {
         const errorData = await sessionResponse.json();
         
      
         if (errorData.requiresReauth) {
+          const session = await getSession();
+          const errorMsg = 'Token expired, re-authentication required';
+          await sendError(session?.user?.id || "", errorMsg);
           await showSignOutDialog("/login");
-          throw new Error('Token expired, re-authentication required');
+          return;
         }
         
-        throw new Error(`Session refresh failed: ${sessionResponse.status}`);
+        const session = await getSession();
+        const errorMsg = `Session refresh failed: ${sessionResponse.status}`;
+        await sendError(session?.user?.id || "", errorMsg);
+        return;
       }
       
       // Get the refreshed session
@@ -243,23 +252,25 @@ class SecureApiClient {
  
       
       if (!newSession?.user?.accessToken) {
+        const errorMsg = 'No access token after refresh';
+        await sendError(newSession?.user?.id || "", errorMsg);
         await showSignOutDialog("/login");
-        throw new Error('No access token after refresh');
+        return;
       }
       
       // Check for refresh token errors
       if ((newSession.user as any).error === "RefreshAccessTokenError") {
+        const errorMsg = 'Refresh token expired, re-authentication required';
+        await sendError(newSession?.user?.id || "", errorMsg);
         await showSignOutDialog("/login");
-        throw new Error('Refresh token expired, re-authentication required');
+        return;
       }
       
 
     } catch (error: any) {
-
-      
       // If refresh fails, logout the user
       await showSignOutDialog("/login");
-      throw error;
+     //
     }
   }
 }

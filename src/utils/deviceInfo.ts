@@ -218,6 +218,5 @@ export async function prepareDeviceInfoForLogin(): Promise<void> {
     
   } catch (error) {
     sendError("unknown", "Failed to prepare device info for login", error);
-    // Don't throw error - login should continue even if device info fails
   }
 }

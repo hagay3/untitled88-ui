@@ -3,6 +3,7 @@
  */
 
 import { getSession } from 'next-auth/react';
+import { sendError } from '@/utils/actions';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -12,7 +13,9 @@ const getAuthHeaders = async () => {
   
   
   if (!session?.user?.accessToken || !session?.user?.id) {
-    throw new Error('No valid session found. Please log in again.');
+    const errorMsg = 'No valid session found. Please log in again.';
+    await sendError(session?.user?.id || "", errorMsg);
+    return {};
   }
 
   const headers = {
@@ -61,25 +64,30 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       }
 
       // Handle specific error cases
+      const session = await getSession();
+      let errorMsg = '';
+      
       if (response.status === 401) {
-        throw new Error('Authentication failed. Please log in again.');
+        errorMsg = 'Authentication failed. Please log in again.';
       } else if (response.status === 403) {
-        throw new Error('Access denied. You do not have permission to perform this action.');
+        errorMsg = 'Access denied. You do not have permission to perform this action.';
       } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
+        errorMsg = 'Rate limit exceeded. Please try again later.';
       } else if (response.status >= 500) {
-        throw new Error('Server error. Please try again later.');
+        errorMsg = 'Server error. Please try again later.';
+      } else {
+        errorMsg = errorData.error || `API request failed: ${response.status} ${response.statusText}`;
       }
       
-      throw new Error(errorData.error || `API request failed: ${response.status} ${response.statusText}`);
+      await sendError(session?.user?.id || "", errorMsg);
+      return null;
     }
 
     const responseData = await response.json();
 
     return responseData;
   } catch (error) {
-
-    throw error;
+    sendError("unknown", `Failed to call api ${endpoint}`);
   }
 };
 

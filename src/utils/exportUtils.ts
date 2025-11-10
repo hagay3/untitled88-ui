@@ -2,6 +2,8 @@
  * Export utilities for downloading email HTML files
  */
 
+import { sendError } from "@/utils/actions";
+
 export interface ExportOptions {
   filename?: string;
   includeStyles?: boolean;
@@ -42,7 +44,7 @@ export const downloadHtmlFile = (
     URL.revokeObjectURL(url);
     
   } catch (error) {
-    throw new Error('Failed to export email. Please try again.');
+    console.error('Failed to export email:', error);
   }
 };
 
@@ -233,6 +235,6 @@ export const copyHtmlToClipboard = async (htmlContent: string): Promise<void> =>
   try {
     await navigator.clipboard.writeText(htmlContent);
   } catch (error) {
-    throw new Error('Failed to copy HTML to clipboard');
+    sendError("unknown", "Failed to copy HTML to clipboard", error);
   }
 };

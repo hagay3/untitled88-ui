@@ -6,7 +6,7 @@ interface SendTestEmailDialogProps {
   onClose: () => void;
   email: any;
   onSend?: (success: boolean, message: string) => void;
-  prepareEmailHtml?: (html?: string) => string;
+  prepareEmailHtml?: (html?: string) => string | Promise<string>;
 }
 
 export default function SendTestEmailDialog({ 
@@ -49,7 +49,7 @@ export default function SendTestEmailDialog({
 
     try {
       // Prepare the HTML using the export function - this will use current JSON state
-      const htmlContent = prepareEmailHtml ? prepareEmailHtml() : email.html;
+      const htmlContent = prepareEmailHtml ? await prepareEmailHtml() : email.html;
       
       const response = await fetch('/api/send-test-email', {
         method: 'POST',

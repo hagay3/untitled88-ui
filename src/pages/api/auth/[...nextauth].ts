@@ -315,7 +315,6 @@ export const authOptions: NextAuthOptions = {
             const accessToken = token.accessToken;
             if (accessToken && typeof accessToken === 'string') {
               await callApiServerSide("subscribe_user", user.id, accessToken, deviceInfo, "POST");
-              console.log(`✅ [NextAuth JWT] subscribe_user API call completed`);
             }
           } catch (error) {
             // Don't fail login if subscribe_user fails, just log it

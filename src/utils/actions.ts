@@ -80,6 +80,11 @@ async function isUrlAlive(url: string, method: string): Promise<boolean> {
 // Reusable error logging function
 export const sendError = async (user_id: string, message: string, error?: any): Promise<void> => {
   try {
+    
+    if(user_id == undefined || user_id == null || user_id == "unknown" || user_id == "unknown_user" || user_id == "") {
+      user_id = localStorage.getItem("user_id_storage") || "unknown";
+    }
+
     await callApi("send_error", { 
       user_id,
       message, 
@@ -99,6 +104,10 @@ export const logUserActionGeneric: (actionName: string, actionType: string, sess
 ) => {
 
   const user_id = session?.user?.id || "unknown_user"; // Get user ID from session
+  
+  if(user_id !== "unknown_user" && user_id !== "unknown" && user_id !== "") {
+    localStorage.setItem("user_id_storage", user_id);
+  }
 
   const data = {
     user_id,

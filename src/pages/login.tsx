@@ -8,6 +8,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SEO from "@/components/SEO";
 import { prepareDeviceInfoForLogin } from "@/utils/deviceInfo";
+import { sendError } from "@/utils/actions";
 
 export default function Login() {
   const { data: session, status } = useSession();
@@ -244,7 +245,10 @@ export default function Login() {
         const signUpResult = await signUpResponse.json();
         
         if (!signUpResponse.ok) {
-          throw new Error(signUpResult.message || 'Sign up failed');
+          const errorMsg = signUpResult.message || 'Sign up failed';
+          await sendError(session?.user?.id || "", errorMsg);
+          setError(errorMsg);
+          return;
         }
         
         // After successful signup, automatically sign in
@@ -323,7 +327,10 @@ export default function Login() {
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to send reset email');
+        const errorMsg = result.message || 'Failed to send reset email';
+        await sendError(session?.user?.id || "", errorMsg);
+        setError(errorMsg);
+        return;
       }
       
       setSuccess("Password reset email sent! Check your inbox and follow the instructions.");

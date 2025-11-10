@@ -3,6 +3,8 @@
  * Compresses images before uploading to S3 for optimal email client support
  */
 
+import { sendError } from "@/utils/actions";
+
 export interface CompressionOptions {
   maxWidth?: number;
   maxHeight?: number;
@@ -79,7 +81,14 @@ export class ImageCompressor {
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        throw new Error('Could not get canvas context');
+        sendError("unknown", "Could not get canvas context");
+        return {
+          success: true,
+          file,
+          originalSize,
+          compressedSize: originalSize,
+          compressionRatio: 1
+        };
       }
 
       // Calculate new dimensions (img already loaded above)
