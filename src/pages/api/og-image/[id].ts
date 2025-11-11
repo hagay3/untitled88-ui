@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createCanvas } from 'canvas';
+import puppeteer from 'puppeteer';
 
 interface SharedEmail {
   user_id: string;
@@ -18,6 +18,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid share ID' });
   }
+
+  // Declare variables for fallback use
+  let fallbackData: any = null;
 
   try {
     // Fetch the shared email data
@@ -40,202 +43,224 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const sharedEmail: SharedEmail = data.shared_email;
+    
+    // Store data for fallback use
+    fallbackData = data;
 
     // Extract email content for the preview
     let emailTitle = sharedEmail.email_subject || 'Shared Email';
-    let emailPreview = 'Professional email created with Untitled88';
     let authorEmail = sharedEmail.email_address || 'Anonymous';
+    
+    // Sanitize text to handle special characters and emojis
+    const sanitizeText = (text: string): string => {
+      return text
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters (emojis, special chars)
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+    };
+    
+    emailTitle = sanitizeText(emailTitle);
+    authorEmail = sanitizeText(authorEmail);
 
-    // Try to extract content from email JSON
+    // Convert email JSON to HTML using EmailConverter
+    let emailHtml = '';
     try {
       if (sharedEmail.email_json && typeof sharedEmail.email_json === 'object') {
-        const blocks = sharedEmail.email_json.blocks || [];
-        
-        // Find hero or text blocks for preview content
-        const contentBlocks = blocks.filter((block: any) => 
-          block.blockType === 'hero' || block.blockType === 'text'
-        );
-        
-        if (contentBlocks.length > 0) {
-          const firstBlock = contentBlocks[0];
-          const content = firstBlock.content;
-          const text = content?.headline || content?.text || content?.subheadline || '';
-          if (text && text.length > 10) {
-            emailPreview = text.length > 120 ? `${text.substring(0, 120)}...` : text;
-          }
+        // Import emailConverter dynamically for server-side use
+        const { emailConverter } = await import('@/utils/EmailConverter');
+        emailHtml = emailConverter.jsonToHtml(sharedEmail.email_json);
+      } else if (sharedEmail.email_json && typeof sharedEmail.email_json === 'string') {
+        try {
+          const parsedJson = JSON.parse(sharedEmail.email_json);
+          const { emailConverter } = await import('@/utils/EmailConverter');
+          emailHtml = emailConverter.jsonToHtml(parsedJson);
+        } catch (parseError) {
+          emailHtml = sharedEmail.email_html || '';
         }
-      }
-    } catch (e) {
-      // Use default preview
-    }
-
-    // Generate Canvas-based Open Graph image
-    const width = 1200;
-    const height = 630;
-    
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-
-    // Create gradient background
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#f0f9ff');
-    gradient.addColorStop(0.5, '#ffffff');
-    gradient.addColorStop(1, '#faf5ff');
-    
-    // Fill background
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Draw email card background with shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-    
-    // Card background
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.roundRect(60, 80, 1080, 470, 20);
-    ctx.fill();
-    
-    // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Draw header section
-    ctx.fillStyle = '#f9fafb';
-    ctx.beginPath();
-    ctx.roundRect(60, 80, 1080, 80, [20, 20, 0, 0]);
-    ctx.fill();
-
-    // Header border
-    ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(60, 160);
-    ctx.lineTo(1140, 160);
-    ctx.stroke();
-
-    // Draw Untitled88 logo circle
-    ctx.fillStyle = '#3b82f6';
-    ctx.beginPath();
-    ctx.arc(120, 120, 20, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Draw Untitled88 text
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 24px Arial, sans-serif';
-    ctx.fillText('Untitled88', 160, 130);
-
-    // Draw email subject (title)
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 36px Arial, sans-serif';
-    
-    // Truncate title if too long
-    let displayTitle = emailTitle;
-    const maxTitleWidth = 1000;
-    let titleWidth = ctx.measureText(displayTitle).width;
-    
-    while (titleWidth > maxTitleWidth && displayTitle.length > 10) {
-      displayTitle = displayTitle.substring(0, displayTitle.length - 4) + '...';
-      titleWidth = ctx.measureText(displayTitle).width;
-    }
-    
-    ctx.fillText(displayTitle, 100, 220);
-
-    // Draw email preview content
-    ctx.fillStyle = '#4b5563';
-    ctx.font = '20px Arial, sans-serif';
-    
-    // Word wrap for preview text
-    const maxPreviewWidth = 1000;
-    const lineHeight = 32;
-    const words = emailPreview.split(' ');
-    let line = '';
-    let y = 280;
-    
-    for (let i = 0; i < words.length; i++) {
-      const testLine = line + words[i] + ' ';
-      const metrics = ctx.measureText(testLine);
-      const testWidth = metrics.width;
-      
-      if (testWidth > maxPreviewWidth && i > 0) {
-        ctx.fillText(line, 100, y);
-        line = words[i] + ' ';
-        y += lineHeight;
-        
-        // Limit to 4 lines
-        if (y > 380) break;
       } else {
-        line = testLine;
+        emailHtml = sharedEmail.email_html || '';
       }
-    }
-    
-    if (line && y <= 380) {
-      ctx.fillText(line, 100, y);
+    } catch (conversionError) {
+      emailHtml = sharedEmail.email_html || '';
     }
 
-    // Draw author info
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '18px Arial, sans-serif';
-    ctx.fillText(`Shared by ${authorEmail}`, 100, 500);
+    // Create a complete HTML page for the email preview
+    const fullHtmlPage = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${emailTitle}</title>
+        <style>
+          body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #faf5ff 100%);
+            min-height: 100vh;
+          }
+          .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          .header {
+            background: #f9fafb;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .logo {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+          }
+          .brand {
+            font-weight: bold;
+            font-size: 18px;
+            color: #000;
+          }
+          .email-content {
+            padding: 0;
+          }
+          .footer {
+            background: #f9fafb;
+            padding: 15px 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <div class="logo">U</div>
+            <div class="brand">Untitled88</div>
+          </div>
+          <div class="email-content">
+            ${emailHtml}
+          </div>
+          <div class="footer">
+            Shared by ${authorEmail} • Created with Untitled88
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
 
-    // Draw Untitled88 branding footer
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '16px Arial, sans-serif';
-    ctx.fillText('Created with Untitled88 • Professional Email Designer', 100, 540);
+    // Use Puppeteer to generate screenshot
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process'
+        ]
+      });
 
-    // Draw decorative circles
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-    ctx.beginPath();
-    ctx.arc(1050, 150, 40, 0, 2 * Math.PI);
-    ctx.fill();
+      const page = await browser.newPage();
+      
+      // Set viewport for OG image dimensions
+      await page.setViewport({
+        width: 1200,
+        height: 630,
+        deviceScaleFactor: 1
+      });
 
-    ctx.fillStyle = 'rgba(139, 92, 246, 0.1)';
-    ctx.beginPath();
-    ctx.arc(1100, 200, 25, 0, 2 * Math.PI);
-    ctx.fill();
+      // Set the HTML content
+      await page.setContent(fullHtmlPage, {
+        waitUntil: 'networkidle0'
+      });
 
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.1)';
-    ctx.beginPath();
-    ctx.arc(150, 500, 30, 0, 2 * Math.PI);
-    ctx.fill();
+      // Take screenshot
+      const screenshot = await page.screenshot({
+        type: 'png',
+        fullPage: false,
+        clip: {
+          x: 0,
+          y: 0,
+          width: 1200,
+          height: 630
+        }
+      });
 
-    // Convert canvas to PNG buffer
-    const buffer = canvas.toBuffer('image/png');
-    
-    // Set appropriate headers
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    
-    // Return the PNG image
-    res.status(200).send(buffer);
+      await browser.close();
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      
+      // Return the PNG image
+      res.status(200).send(screenshot);
+
+    } catch (puppeteerError) {
+      if (browser) {
+        await browser.close();
+      }
+      throw puppeteerError;
+    }
 
   } catch (error) {
     console.error('Error generating OG image:', error);
     
-    // Fallback to a simple error image using canvas
+    // Extract basic info for fallback (re-declare in catch scope)
+    let fallbackTitle = 'Email Preview';
+    let fallbackAuthor = 'Anonymous';
+    
     try {
-      const canvas = createCanvas(1200, 630);
-      const ctx = canvas.getContext('2d');
-      
-      // Simple fallback design
-      ctx.fillStyle = '#f3f4f6';
-      ctx.fillRect(0, 0, 1200, 630);
-      
-      ctx.fillStyle = '#374151';
-      ctx.font = 'bold 48px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Untitled88 - Email Preview', 600, 315);
-      
-      const buffer = canvas.toBuffer('image/png');
-      res.setHeader('Content-Type', 'image/png');
-      res.status(200).send(buffer);
-    } catch (fallbackError) {
-      // If even the fallback fails, return a simple response
-      res.status(500).json({ error: 'Failed to generate preview image' });
+      if (fallbackData?.shared_email?.email_subject) {
+        fallbackTitle = fallbackData.shared_email.email_subject.replace(/[^\x00-\x7F]/g, '').trim();
+      }
+      if (fallbackData?.shared_email?.email_address) {
+        fallbackAuthor = fallbackData.shared_email.email_address.replace(/[^\x00-\x7F]/g, '').trim();
+      }
+    } catch (e) {
+      // Use defaults
     }
+    
+    // Fallback to a simple SVG response
+    const fallbackSvg = `
+      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#f0f9ff;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#ffffff;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#faf5ff;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#bg)"/>
+        <rect x="100" y="150" width="1000" height="330" rx="20" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+        <circle cx="200" cy="220" r="25" fill="#3b82f6"/>
+        <text x="250" y="235" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000000">Untitled88</text>
+        <text x="200" y="300" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#000000">${fallbackTitle}</text>
+        <text x="200" y="350" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Shared by ${fallbackAuthor}</text>
+        <text x="200" y="420" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">Created with Untitled88 • Professional Email Designer</text>
+      </svg>
+    `;
+    
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=300'); // Shorter cache for fallback
+    res.status(200).send(fallbackSvg);
   }
 }
