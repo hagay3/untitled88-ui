@@ -345,7 +345,7 @@ export default function SharePage({ sharedEmail: initialSharedEmail, error: init
         <meta property="og:url" content={shareUrl} />
         <meta property="og:title" content={`${emailSubject} - Shared Email | Untitled88`} />
         <meta property="og:description" content={metaDescription} />
-        <meta property="og:image" content="https://untitled88.com/og-image.png" />
+        <meta property="og:image" content={`https://untitled88.com/api/og-image/${id}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`Preview of ${emailSubject} email created with Untitled88`} />
@@ -358,13 +358,13 @@ export default function SharePage({ sharedEmail: initialSharedEmail, error: init
         <meta property="twitter:url" content={shareUrl} />
         <meta property="twitter:title" content={`${emailSubject} - Shared Email | Untitled88`} />
         <meta property="twitter:description" content={metaDescription} />
-        <meta property="twitter:image" content="https://untitled88.com/og-image.png" />
+        <meta property="twitter:image" content={`https://untitled88.com/api/og-image/${id}`} />
         <meta property="twitter:image:alt" content={`Preview of ${emailSubject} email created with Untitled88`} />
         
         {/* LinkedIn */}
         <meta property="linkedin:title" content={`${emailSubject} - Shared Email | Untitled88`} />
         <meta property="linkedin:description" content={metaDescription} />
-        <meta property="linkedin:image" content="https://untitled88.com/og-image.png" />
+        <meta property="linkedin:image" content={`https://untitled88.com/api/og-image/${id}`} />
         
         {/* Additional SEO */}
         <meta name="author" content="Untitled88" />
@@ -381,7 +381,7 @@ export default function SharePage({ sharedEmail: initialSharedEmail, error: init
               "name": `${emailSubject} - Shared Email`,
               "description": metaDescription,
               "url": shareUrl,
-              "image": "https://untitled88.com/og-image.png",
+              "image": `https://untitled88.com/api/og-image/${id}`,
               "publisher": {
                 "@type": "Organization",
                 "name": "Untitled88",
