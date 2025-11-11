@@ -19,6 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid share ID' });
   }
 
+
   // Declare variables for fallback use
   let fallbackData: any = null;
 
@@ -97,8 +98,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             margin: 0;
             padding: 20px;
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #faf5ff 100%);
+            background: #ffffff;
             min-height: 100vh;
+            width: 1200px;
+            height: 630px;
+            overflow: hidden;
           }
           .email-container {
             max-width: 600px;
@@ -175,7 +179,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           '--disable-gpu',
           '--no-first-run',
           '--no-zygote',
-          '--single-process'
+          '--single-process',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
         ]
       });
 
@@ -190,13 +196,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Set the HTML content
       await page.setContent(fullHtmlPage, {
-        waitUntil: 'networkidle0'
+        waitUntil: 'networkidle0',
+        timeout: 30000
       });
+
+      // Wait a bit more for  crawler to ensure everything is rendered
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
 
       // Take screenshot
       const screenshot = await page.screenshot({
         type: 'png',
         fullPage: false,
+        quality: 100,
+        omitBackground: false,
         clip: {
           x: 0,
           y: 0,
@@ -209,7 +223,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Set appropriate headers
       res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Content-Length', screenshot.length.toString());
+      
+      
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours 
+      
+      
       
       // Return the PNG image
       res.status(200).send(screenshot);
@@ -239,23 +258,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Use defaults
     }
     
-    // Fallback to a simple SVG response
+    // Fallback to a simple SVG response with solid white background
     const fallbackSvg = `
       <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#f0f9ff;stop-opacity:1" />
-            <stop offset="50%" style="stop-color:#ffffff;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#faf5ff;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#bg)"/>
-        <rect x="100" y="150" width="1000" height="330" rx="20" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
-        <circle cx="200" cy="220" r="25" fill="#3b82f6"/>
-        <text x="250" y="235" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#000000">Untitled88</text>
-        <text x="200" y="300" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#000000">${fallbackTitle}</text>
-        <text x="200" y="350" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Shared by ${fallbackAuthor}</text>
-        <text x="200" y="420" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">Created with Untitled88 • Professional Email Designer</text>
+        <!-- Solid white background -->
+        <rect width="100%" height="100%" fill="#ffffff"/>
+        
+        <!-- Email card -->
+        <rect x="100" y="100" width="1000" height="430" rx="20" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+        
+        <!-- Header section -->
+        <rect x="100" y="100" width="1000" height="80" rx="20" fill="#f9fafb"/>
+        <line x1="100" y1="180" x2="1100" y2="180" stroke="#e5e7eb" stroke-width="1"/>
+        
+        <!-- Logo -->
+        <circle cx="150" cy="140" r="20" fill="#3b82f6"/>
+        <text x="180" y="150" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#000000">Untitled88</text>
+        
+        <!-- Email title -->
+        <text x="150" y="240" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#000000">${fallbackTitle}</text>
+        
+        <!-- Content area -->
+        <rect x="150" y="270" width="900" height="180" fill="#ffffff"/>
+        <text x="150" y="300" font-family="Arial, sans-serif" font-size="16" fill="#6b7280">Professional email created with Untitled88</text>
+        <text x="150" y="330" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">Shared by ${fallbackAuthor}</text>
+        
+        <!-- Footer -->
+        <rect x="100" y="480" width="1000" height="50" fill="#f9fafb"/>
+        <text x="150" y="510" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Created with Untitled88 • Professional Email Designer</text>
       </svg>
     `;
     
