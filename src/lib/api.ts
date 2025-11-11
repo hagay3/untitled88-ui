@@ -40,11 +40,20 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       ...options.headers,
     };
     
+    // Set consistent 5-minute timeout for all endpoints
+    const timeoutMs = 5 * 60 * 1000; // 5 minutes
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
     const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       ...options,
       headers: finalHeaders,
+      signal: controller.signal,
     });
-
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       // Try to get error message from response
@@ -97,6 +106,14 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       return { success: true }; // Return success for empty responses
     }
   } catch (error) {
+    // Handle timeout errors specifically
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = `Request timeout after 300 seconds`;
+      
+      sendError("unknown", `API timeout: ${endpoint} - ${timeoutError}`);
+      return null;
+    }
+    
     const errorDetails = {
       endpoint,
       method: options.method || 'GET',

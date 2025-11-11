@@ -1,0 +1,31 @@
+---
+description: Frontend-specific React and Next.js guidelines
+globs: ["**/*.tsx", "**/*.ts", "**/*.jsx", "**/*.js"]
+alwaysApply: true
+---
+
+# Frontend-Specific Guidelines
+
+## Next.js Specific Guidelines
+- Use Pages Router (not App Router) for this project
+- Implement proper SEO with meta tags and structured data
+- Use Next.js Image component for optimized images
+- Use getServerSideProps for dynamic content that needs SEO
+
+## React Component Patterns
+- Use functional components with hooks exclusively
+- Follow component composition patterns over inheritance
+- Use React.memo for expensive components when appropriate
+- Implement proper error boundaries for component trees
+
+## Frontend-Specific State Management
+- Use Zustand for client-side state management
+- Keep state as close to components as possible
+- Use React hooks for local component state
+- Implement proper loading and error states
+
+## Frontend Performance
+- Use lazy loading for heavy components
+- Implement code splitting for large components
+- Optimize bundle size with tree shaking
+- Use proper image optimization strategies

@@ -141,16 +141,25 @@ class SecureApiClient {
         ...options.headers,
       };
 
-      // Make the API request
-      const response = await fetch(`${this.baseUrl}/api/${endpoint}`, {
-        ...options,
-        headers,
-      });
+      // Set consistent 5-minute timeout for all endpoints
+      const timeoutMs = 5 * 60 * 1000; // 5 minutes
       
-  
-
-      // Handle 401 Unauthorized - attempt session refresh
-      if (response.status === 401 && retryCount < maxRetries) {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      try {
+        // Make the API request
+        const response = await fetch(`${this.baseUrl}/api/${endpoint}`, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Handle 401 Unauthorized - attempt session refresh
+        if (response.status === 401 && retryCount < maxRetries) {
         
         try {
           // Ensure only one refresh attempt at a time
@@ -187,8 +196,21 @@ class SecureApiClient {
         await showSignOutDialog("/login");
       }
 
-      return response;
+        return response;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error(`Request timeout after 300 seconds`);
+        }
+        throw fetchError;
+      }
     } catch (error: any) {
+      // Handle timeout errors specifically
+      if (error instanceof Error && error.message.includes('timeout')) {
+        sendError("unknown", `API timeout: ${endpoint} - ${error.message}`);
+        throw error;
+      }
+      
       // Log error and re-throw
       sendError("unknown", "Fetch error", error);
       throw error;
