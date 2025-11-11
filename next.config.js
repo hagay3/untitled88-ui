@@ -18,7 +18,12 @@ const nextConfig = {
       's.gravatar.com', // Gravatar profile images (Auth0 default)
       'cdn.auth0.com', // Auth0 CDN for default avatars
       'secure.gravatar.com', // Secure Gravatar images
+      'untitled88.com', // Our own domain for images
+      'www.untitled88.com', // WWW version
     ],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   
   // Security Headers
@@ -42,6 +47,60 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
+          },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains'
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block'
+          }
+        ]
+      },
+      // Allow social media crawlers to access images
+      {
+        source: '/og-image.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          },
+          {
+            key: 'X-Robots-Tag',
+            value: 'index, follow'
+          }
+        ]
+      },
+      // Optimize sitemap caching
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate'
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/xml'
+          }
+        ]
+      },
+      // Optimize robots.txt
+      {
+        source: '/robots.txt',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400'
+          },
+          {
+            key: 'Content-Type',
+            value: 'text/plain'
           }
         ]
       }

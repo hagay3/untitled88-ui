@@ -1,12 +1,65 @@
-# Allow all web crawlers
+# Allow all web crawlers including AI bots
 User-agent: *
 Allow: /
 
-# Disallow admin and API routes
+# Specifically allow major AI/ML bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# Disallow private/sensitive routes
 Disallow: /api/
 Disallow: /admin/
 Disallow: /_next/
 Disallow: /dashboard/
+Disallow: /beta/
+
+# Allow public sharing routes
+Allow: /share/
 
 # Crawl-delay for better server performance
 Crawl-delay: 1

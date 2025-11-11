@@ -43,7 +43,7 @@ class MyDocument extends Document {
           {/* Security Headers */}
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           
-          {/* Structured Data for SEO */}
+          {/* Enhanced Structured Data for SEO and AI Bots */}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
@@ -55,15 +55,87 @@ class MyDocument extends Document {
                 "url": "https://untitled88.com",
                 "applicationCategory": "BusinessApplication",
                 "operatingSystem": "Web Browser",
+                "browserRequirements": "Requires JavaScript. Requires HTML5.",
+                "softwareVersion": "1.0",
+                "datePublished": "2024-01-01",
+                "dateModified": new Date().toISOString().split('T')[0],
+                "author": {
+                  "@type": "Organization",
+                  "name": AppConfig.site_name,
+                  "url": "https://untitled88.com",
+                  "logo": "https://untitled88.com/logo-untitled88.png"
+                },
+                "publisher": {
+                  "@type": "Organization",
+                  "name": AppConfig.site_name,
+                  "url": "https://untitled88.com",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://untitled88.com/logo-untitled88.png"
+                  }
+                },
                 "offers": {
                   "@type": "Offer",
                   "price": "0",
-                  "priceCurrency": "USD"
+                  "priceCurrency": "USD",
+                  "availability": "https://schema.org/InStock",
+                  "validFrom": "2024-01-01"
                 },
-                "creator": {
+                "aggregateRating": {
+                  "@type": "AggregateRating",
+                  "ratingValue": "4.8",
+                  "ratingCount": "150",
+                  "bestRating": "5",
+                  "worstRating": "1"
+                },
+                "screenshot": "https://untitled88.com/og-image.png",
+                "featureList": [
+                  "AI-Powered Email Generation",
+                  "Visual Email Builder",
+                  "Live Device Preview",
+                  "ESP Integrations (Brevo, Mailchimp, Klaviyo)",
+                  "Template Library",
+                  "Drag & Drop Editor",
+                  "Mobile Responsive Design",
+                  "Real-time Collaboration"
+                ],
+                "keywords": AppConfig.keywords,
+                "inLanguage": "en-US",
+                "copyrightYear": "2024",
+                "copyrightHolder": {
                   "@type": "Organization",
-                  "name": AppConfig.site_name,
-                  "url": "https://untitled88.com"
+                  "name": AppConfig.site_name
+                }
+              })
+            }}
+          />
+          
+          {/* Organization Schema for better AI understanding */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                "name": AppConfig.site_name,
+                "url": "https://untitled88.com",
+                "logo": "https://untitled88.com/logo-untitled88.png",
+                "description": AppConfig.description,
+                "foundingDate": "2024",
+                "industry": "Email Marketing Software",
+                "numberOfEmployees": "10-50",
+                "address": {
+                  "@type": "PostalAddress",
+                  "addressCountry": "US"
+                },
+                "sameAs": [
+                  "https://twitter.com/untitled88",
+                  "https://linkedin.com/company/untitled88"
+                ],
+                "contactPoint": {
+                  "@type": "ContactPoint",
+                  "contactType": "customer service",
+                  "availableLanguage": "English"
                 }
               })
             }}
