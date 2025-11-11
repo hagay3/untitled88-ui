@@ -123,14 +123,15 @@ class SecureApiClient {
   ): Promise<Response> {
     const maxRetries = 3;
     
-    
     try {
       // Get current session for access token
       const session = await getSession();
       const accessToken = session?.user?.accessToken;
       const userId = session?.user?.id;
       
-
+      if (!accessToken) {
+        throw new Error('No access token available');
+      }
 
       // Prepare headers
       const headers = {
@@ -139,8 +140,6 @@ class SecureApiClient {
         ...(userId && { 'X-User-Id': userId }),
         ...options.headers,
       };
-      
-   
 
       // Make the API request
       const response = await fetch(`${this.baseUrl}/api/${endpoint}`, {
@@ -202,11 +201,9 @@ class SecureApiClient {
    */
   private async refreshSession(): Promise<void> {
     try {
-      
       // Get current session first (needed for NextAuth token lifecycle)
       await getSession();
 
-      
       // Call our custom refresh endpoint
       const sessionResponse = await fetch('/api/auth/refresh', {
         method: 'POST',
@@ -219,8 +216,6 @@ class SecureApiClient {
       if (sessionResponse.ok) {
         const refreshData = await sessionResponse.json();
         
-    
-        
         if (refreshData.requiresReauth) {
           const session = await getSession();
           const errorMsg = 'Token expired, re-authentication required';
@@ -231,7 +226,6 @@ class SecureApiClient {
       } else {
         const errorData = await sessionResponse.json();
         
-     
         if (errorData.requiresReauth) {
           const session = await getSession();
           const errorMsg = 'Token expired, re-authentication required';
@@ -249,8 +243,6 @@ class SecureApiClient {
       // Get the refreshed session
       const newSession = await getSession();
       
- 
-      
       if (!newSession?.user?.accessToken) {
         const errorMsg = 'No access token after refresh';
         await sendError(newSession?.user?.id || "", errorMsg);
@@ -265,12 +257,10 @@ class SecureApiClient {
         await showSignOutDialog("/login");
         return;
       }
-      
 
     } catch (error: any) {
       // If refresh fails, logout the user
       await showSignOutDialog("/login");
-     //
     }
   }
 }

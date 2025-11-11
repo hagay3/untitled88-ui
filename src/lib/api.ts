@@ -11,11 +11,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const getAuthHeaders = async () => {
   const session = await getSession();
   
-  
+  // Return null if no valid session - don't send error reports for missing sessions
   if (!session?.user?.accessToken || !session?.user?.id) {
-    const errorMsg = 'No valid session found. Please log in again.';
-    await sendError(session?.user?.id || "", errorMsg);
-    return {};
+    return null;
   }
 
   const headers = {
@@ -24,21 +22,23 @@ const getAuthHeaders = async () => {
     'X-User-Id': session.user.id
   };
   
-  
   return headers;
 };
 
 // Generic API request function
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   try {
-
     const headers = await getAuthHeaders();
+    
+    // Return early if no auth headers (no valid session)
+    if (!headers) {
+      return null;
+    }
     
     const finalHeaders = {
       ...headers,
       ...options.headers,
     };
-    
     
     const response = await fetch(`${API_BASE_URL}/api${endpoint}`, {
       ...options,
@@ -52,14 +52,12 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       try {
         const responseText = await response.text();
         
-        
         try {
           errorData = JSON.parse(responseText);
         } catch {
           errorData = { error: responseText };
         }
       } catch (readError) {
-        
         errorData = { error: 'Failed to read error response' };
       }
 
@@ -83,11 +81,33 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
       return null;
     }
 
-    const responseData = await response.json();
-
-    return responseData;
+    // Try to parse JSON response
+    try {
+      const responseText = await response.text();
+      
+      // Check if response is empty
+      if (!responseText || responseText.trim() === '') {
+        return { success: true };
+      }
+      
+      // Try to parse as JSON
+      const responseData = JSON.parse(responseText);
+      return responseData;
+    } catch (parseError) {
+      return { success: true }; // Return success for empty responses
+    }
   } catch (error) {
-    sendError("unknown", `Failed to call api ${endpoint}`);
+    const errorDetails = {
+      endpoint,
+      method: options.method || 'GET',
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    };
+    
+    sendError("unknown", `Failed to call API: ${endpoint} - ${errorDetails.error}`);
+    
+    return null;
   }
 };
 
@@ -262,6 +282,11 @@ export const aiAPI = {
 // User Actions API
 export const userAPI = {
   subscribeUser: async (userId: string) => {
+    // Validate user ID before making API call
+    if (!userId || userId === 'unknown' || userId === 'unknown_user' || userId.trim() === '') {
+      return null;
+    }
+    
     return apiRequest('/subscribe_user', {
       method: 'POST',
       body: JSON.stringify({ user_id: userId }),
@@ -276,6 +301,11 @@ export const userAPI = {
     action_status?: string;
     failure_reason?: string;
   }) => {
+    // Validate user ID before making API call
+    if (!actionData.user_id || actionData.user_id === 'unknown' || actionData.user_id === 'unknown_user' || actionData.user_id.trim() === '') {
+      return null;
+    }
+    
     return apiRequest('/user_action', {
       method: 'POST',
       body: JSON.stringify(actionData),
@@ -292,6 +322,11 @@ export const userAPI = {
     device_id?: string;
     device_name?: string;
   }) => {
+    // Validate user ID before making API call
+    if (!loginData.user_id || loginData.user_id === 'unknown' || loginData.user_id === 'unknown_user' || loginData.user_id.trim() === '') {
+      return null;
+    }
+    
     return apiRequest('/user_login', {
       method: 'POST',
       body: JSON.stringify(loginData),
@@ -299,6 +334,11 @@ export const userAPI = {
   },
 
   logout: async (userId: string) => {
+    // Validate user ID before making API call
+    if (!userId || userId === 'unknown' || userId === 'unknown_user' || userId.trim() === '') {
+      return null;
+    }
+    
     return apiRequest('/user_logout', {
       method: 'POST',
       body: JSON.stringify({ user_id: userId }),

@@ -25,8 +25,8 @@ export default function Dashboard() {
       return;
     }
 
-    // Call subscribe_user API to ensure user is registered/updated
-    if (session?.user?.id) {
+    // Only call API if we have a complete session with access token
+    if (session?.user?.id && session?.user?.accessToken) {
       userAPI.subscribeUser(session.user.id).catch(() => {
         // Silently handle API errors - don't break the dashboard
       });

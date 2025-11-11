@@ -23,6 +23,14 @@ export const callApi = async (
   returnJson: boolean = false
 ): Promise<any> => {
   try {
+    // Check if we have a valid session with access token
+    const { getSession } = await import('next-auth/react');
+    const session = await getSession();
+    
+    if (!session?.user?.accessToken) {
+      return null;
+    }
+    
     // Use the secure API client for automatic session refresh
     const response = await apiClient.fetchWithAuth(endpoint, {
       method: method,
@@ -80,16 +88,47 @@ async function isUrlAlive(url: string, method: string): Promise<boolean> {
 // Reusable error logging function
 export const sendError = async (user_id: string, message: string, error?: any): Promise<void> => {
   try {
-    
     if(user_id == undefined || user_id == null || user_id == "unknown" || user_id == "unknown_user" || user_id == "") {
       user_id = localStorage.getItem("user_id_storage") || "unknown";
     }
+    
+    // Don't send error to API if user is still unknown
+    if (user_id === "unknown" || user_id === "unknown_user" || !user_id) {
+      return;
+    }
 
-    await callApi("send_error", { 
+    // Collect detailed error information
+    const errorDetails: any = {
       user_id,
-      message, 
-      error: error ? String(error) : undefined 
-    });
+      message,
+      timestamp: new Date().toISOString(),
+      url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      browser: typeof navigator !== 'undefined' ? getBrowserName() : 'unknown',
+      os: typeof window !== 'undefined' ? getOS() : 'unknown',
+      screenResolution: typeof window !== 'undefined' ? `${window.screen.width}x${window.screen.height}` : 'unknown',
+      viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown',
+    };
+
+    // Add error details if provided
+    if (error) {
+      if (error instanceof Error) {
+        errorDetails.error = {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        };
+      } else if (typeof error === 'object') {
+        errorDetails.error = {
+          ...error,
+          stringified: JSON.stringify(error, null, 2)
+        };
+      } else {
+        errorDetails.error = String(error);
+      }
+    }
+
+    await callApi("send_error", errorDetails);
   } catch (err) {
     // Silent error - don't log errors about logging errors
   }
