@@ -118,11 +118,7 @@ const nextConfig = {
     ]
   },
   
-  // PWA Support
-  experimental: {
-    // optimizeCss: true, // Disabled due to dependency conflicts
-    appDir: false, // Explicitly disable App Router to prevent conflicts
-  },
+  // PWA Support - removed experimental section to prevent warnings
   
   // Bundle Analysis
   webpack: (config, { dev, isServer }) => {
