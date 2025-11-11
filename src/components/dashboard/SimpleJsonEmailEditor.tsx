@@ -145,6 +145,9 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
   // My Emails sidebar state
   const [showMyEmailsSidebar, setShowMyEmailsSidebar] = useState(false);
   
+  // Email compliance info state
+  const [showComplianceInfo, setShowComplianceInfo] = useState(false);
+  
   // Background sync management (async, non-blocking)
   const [backgroundSyncQueue, setBackgroundSyncQueue] = useState<EmailStructure[]>([]);
   const [isSyncingToBackend, setIsSyncingToBackend] = useState(false);
@@ -578,6 +581,7 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
+              <span>Email Delivery Ready</span>
             </div>
           </div>
 
@@ -627,6 +631,72 @@ export const SimpleJsonEmailEditor: React.FC<SimpleJsonEmailEditorProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Email Compliance Note - Compact */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-sm font-medium text-blue-900">Email Client Compliance</h3>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                ✓ Optimized
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowComplianceInfo(!showComplianceInfo)}
+            className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-blue-100 transition-colors"
+            title="View compliance details"
+          >
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Expandable Compliance Details */}
+        {showComplianceInfo && (
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <p className="text-sm text-blue-800 leading-relaxed mb-3">
+              This email is designed for maximum compatibility across all major email clients including 
+              <span className="font-medium"> Gmail, Outlook, Apple Mail, Yahoo, Thunderbird</span>, and mobile apps. 
+              Our templates use table-based layouts, inline CSS, and web-safe fonts to ensure consistent rendering 
+              and prevent emails from landing in spam folders.
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-xs text-blue-700">
+              <div className="flex items-center space-x-2">
+                <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Table-based layout</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Inline CSS</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Web-safe fonts</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Anti-spam optimized</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Preview Content */}

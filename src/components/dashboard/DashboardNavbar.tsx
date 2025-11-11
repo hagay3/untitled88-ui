@@ -3,7 +3,7 @@
  * Contains logo, user info, and action buttons (save, export, share, templates)
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'next-auth/react';
@@ -36,8 +36,10 @@ export default function DashboardNavbar({
   pendingChangesCount = 0,
   isCreatingShare = false
 }: DashboardNavbarProps) {
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);  
   const [isSaving, setIsSaving] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -60,6 +62,20 @@ export default function DashboardNavbar({
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' });
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-3">
@@ -193,29 +209,55 @@ export default function DashboardNavbar({
           )}
         </div>
 
-        {/* Right - User Info */}
-        <div className="flex items-center space-x-3">
-          <Image
-            src={user?.image || "/default-avatar.png"}
-            alt="User Avatar"
-            width={32}
-            height={32}
-            className="w-8 h-8 rounded-full"
-          />
-          <div className="text-sm">
-            <div className="font-medium text-gray-900">{user?.name}</div>
-            <div className="text-gray-500">{user?.email}</div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSignOut}
-            className="text-gray-500 hover:text-gray-700"
+        {/* Right - User Profile with Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setShowUserDropdown(!showUserDropdown)}
+            className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <Image
+              src={user?.image || "/default-avatar.png"}
+              alt="User Avatar"
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-full"
+            />
+            <div className="text-sm text-left">
+              <div className="font-medium text-gray-900">{user?.name}</div>
+              <div className="text-gray-500">{user?.email}</div>
+            </div>
+            <svg 
+              className={`w-4 h-4 text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
-          </Button>
+          </button>
+
+          {/* User Dropdown Menu */}
+          {showUserDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+              <div className="px-4 py-2 border-b border-gray-100">
+                <div className="text-sm font-medium text-gray-900">{user?.name}</div>
+                <div className="text-xs text-gray-500">{user?.email}</div>
+              </div>
+              
+              <button
+                onClick={() => {
+                  handleSignOut();
+                  setShowUserDropdown(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>

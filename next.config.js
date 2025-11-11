@@ -121,6 +121,7 @@ const nextConfig = {
   // PWA Support
   experimental: {
     // optimizeCss: true, // Disabled due to dependency conflicts
+    appDir: false, // Explicitly disable App Router to prevent conflicts
   },
   
   // Bundle Analysis

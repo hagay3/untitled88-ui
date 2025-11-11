@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import { useSession } from 'next-auth/react';
 import { emailConverter } from '@/utils/EmailConverter';
 import { sendError } from '@/utils/actions';
+import { canCopyJson } from '@/utils/testEmails';
 
 interface SharedEmail {
   user_id: string;
@@ -150,6 +151,9 @@ export default function SharePage() {
   };
 
   const [copyJsonSuccess, setCopyJsonSuccess] = useState(false);
+  
+  // Check if current user can copy JSON
+  const userCanCopyJson = canCopyJson(session?.user?.email);
 
   const handleCopyJson = async () => {
     if (!sharedEmail?.email_json) {
@@ -362,8 +366,8 @@ export default function SharePage() {
                     </svg>
                   </button>
                   
-                  {/* Copy JSON button */}
-                  {sharedEmail?.email_json && (
+                  {/* Copy JSON button - Only for test emails */}
+                  {sharedEmail?.email_json && userCanCopyJson && (
                     <button
                       onClick={handleCopyJson}
                       className={`transition-colors ${
@@ -379,7 +383,7 @@ export default function SharePage() {
                         </svg>
                       ) : (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                       )}
                     </button>

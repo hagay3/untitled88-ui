@@ -4,9 +4,11 @@
  */
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from './button';
 import { apiClient } from '@/utils/apiClient';
 import { sendError } from '@/utils/actions';
+import { canCopyJson } from '@/utils/testEmails';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -21,6 +23,7 @@ interface ExportOptions {
 }
 
 export default function ExportDialog({ isOpen, onClose, onExport, email, getHtmlContent }: ExportDialogProps) {
+  const { data: session } = useSession();
   const [options, _setOptions] = useState<ExportOptions>({
     filename: email?.subject ? 
       email.subject.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-').toLowerCase() : 
@@ -29,6 +32,9 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
   
   const [copyJsonSuccess, setCopyJsonSuccess] = useState(false);
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
+  
+  // Check if current user can copy JSON
+  const userCanCopyJson = canCopyJson(session?.user?.email);
 
   const handleExport = () => {
     onExport(options);
@@ -186,8 +192,8 @@ export default function ExportDialog({ isOpen, onClose, onExport, email, getHtml
                 </Button>
               )}
               
-              {/* Copy JSON Button */}
-              {email?.email_json && (
+              {/* Copy JSON Button - Only for test emails */}
+              {email?.email_json && userCanCopyJson && (
                 <Button
                   variant="outline"
                   onClick={handleCopyJson}
