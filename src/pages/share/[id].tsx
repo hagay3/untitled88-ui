@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { emailConverter } from '@/utils/EmailConverter';
 import { sendError } from '@/utils/actions';
 import { canCopyJson } from '@/utils/testEmails';
+import { GetServerSideProps } from 'next';
 
 interface SharedEmail {
   user_id: string;
@@ -21,17 +22,25 @@ interface SharedEmail {
   created_at: string;
 }
 
-export default function SharePage() {
+interface SharePageProps {
+  sharedEmail: SharedEmail | null;
+  error: string | null;
+  convertedHtml: string;
+}
+
+export default function SharePage({ sharedEmail: initialSharedEmail, error: initialError, convertedHtml: initialConvertedHtml }: SharePageProps) {
   const router = useRouter();
   const { id } = router.query;
   const { data: session } = useSession();
   
-  const [sharedEmail, setSharedEmail] = useState<SharedEmail | null>(null);
-  const [convertedHtml, setConvertedHtml] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [sharedEmail, setSharedEmail] = useState<SharedEmail | null>(initialSharedEmail);
+  const [convertedHtml, setConvertedHtml] = useState<string>(initialConvertedHtml);
+  const [loading, setLoading] = useState(!initialSharedEmail && !initialError);
+  const [error, setError] = useState<string | null>(initialError);
 
   useEffect(() => {
+    // Skip fetching if we already have data from SSR
+    if (initialSharedEmail || initialError) return;
     if (!id || typeof id !== 'string') return;
 
     const fetchSharedEmail = async () => {
@@ -92,7 +101,7 @@ export default function SharePage() {
     };
 
     fetchSharedEmail();
-  }, [id]);
+  }, [id, initialSharedEmail, initialError]);
 
   const handleBuildEmailClick = () => {
     if (session) {
@@ -276,35 +285,116 @@ export default function SharePage() {
     );
   }
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const emailSubject = sharedEmail.email_subject || 'Shared Email';
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://untitled88.com/share/${id}`;
+  const emailSubject = sharedEmail?.email_subject || 'Shared Email';
   const emailDescription = `Check out this email created with Untitled88 - ${emailSubject}`;
+  
+  // Create a preview text from the email content
+  const getEmailPreview = () => {
+    if (!sharedEmail) return emailDescription;
+    
+    try {
+      // Try to extract text from the email JSON for a better description
+      if (sharedEmail.email_json && typeof sharedEmail.email_json === 'object') {
+        const blocks = sharedEmail.email_json.blocks || [];
+        const textBlocks = blocks.filter((block: any) => 
+          block.blockType === 'hero' || block.blockType === 'text'
+        );
+        
+        if (textBlocks.length > 0) {
+          const firstBlock = textBlocks[0];
+          const content = firstBlock.content;
+          const text = content?.headline || content?.text || content?.subheadline || '';
+          if (text && text.length > 10) {
+            return `${text.substring(0, 150)}${text.length > 150 ? '...' : ''} - Created with Untitled88`;
+          }
+        }
+      }
+    } catch (e) {
+      // Fallback to default description
+    }
+    
+    return emailDescription;
+  };
+  
+  const metaDescription = getEmailPreview();
+  
+  // Consistent date formatting to avoid hydration errors
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      // Use consistent formatting that works on both server and client
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Unknown date';
+    }
+  };
 
   return (
     <>
       <Head>
         <title>{`${emailSubject} - Shared Email | Untitled88`}</title>
-        <meta name="description" content={emailDescription} />
+        <meta name="description" content={metaDescription} />
         
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content={shareUrl} />
-        <meta property="og:title" content={`${emailSubject} - Shared Email`} />
-        <meta property="og:description" content={emailDescription} />
-        <meta property="og:image" content="/api/og-image" />
+        <meta property="og:title" content={`${emailSubject} - Shared Email | Untitled88`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:image" content="https://untitled88.com/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={`Preview of ${emailSubject} email created with Untitled88`} />
         <meta property="og:site_name" content="Untitled88" />
         
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:site" content="@untitled88" />
+        <meta property="twitter:creator" content="@untitled88" />
         <meta property="twitter:url" content={shareUrl} />
-        <meta property="twitter:title" content={`${emailSubject} - Shared Email`} />
-        <meta property="twitter:description" content={emailDescription} />
-        <meta property="twitter:image" content="/api/og-image" />
+        <meta property="twitter:title" content={`${emailSubject} - Shared Email | Untitled88`} />
+        <meta property="twitter:description" content={metaDescription} />
+        <meta property="twitter:image" content="https://untitled88.com/og-image.png" />
+        <meta property="twitter:image:alt" content={`Preview of ${emailSubject} email created with Untitled88`} />
         
         {/* LinkedIn */}
-        <meta property="linkedin:title" content={`${emailSubject} - Shared Email`} />
-        <meta property="linkedin:description" content={emailDescription} />
-        <meta property="linkedin:image" content="/api/og-image" />
+        <meta property="linkedin:title" content={`${emailSubject} - Shared Email | Untitled88`} />
+        <meta property="linkedin:description" content={metaDescription} />
+        <meta property="linkedin:image" content="https://untitled88.com/og-image.png" />
+        
+        {/* Additional SEO */}
+        <meta name="author" content="Untitled88" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" content={shareUrl} />
+        
+        {/* Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebPage",
+              "name": `${emailSubject} - Shared Email`,
+              "description": metaDescription,
+              "url": shareUrl,
+              "image": "https://untitled88.com/og-image.png",
+              "publisher": {
+                "@type": "Organization",
+                "name": "Untitled88",
+                "url": "https://untitled88.com"
+              },
+              "datePublished": sharedEmail?.created_at,
+              "author": {
+                "@type": "Person",
+                "email": sharedEmail?.email_address
+              }
+            })
+          }}
+        />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -345,7 +435,7 @@ export default function SharePage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-black mb-2">{emailSubject}</h1>
             <p className="text-gray-600">
-              Shared by {sharedEmail.email_address} • {new Date(sharedEmail.created_at).toLocaleDateString()}
+              Shared by {sharedEmail.email_address} • {formatDate(sharedEmail.created_at)}
             </p>
           </div>
 
@@ -472,3 +562,91 @@ export default function SharePage() {
     </>
   );
 }
+
+// Server-side rendering for better social media previews
+export const getServerSideProps: GetServerSideProps<SharePageProps> = async (context) => {
+  const { id } = context.params!;
+  
+  if (!id || typeof id !== 'string') {
+    return {
+      props: {
+        sharedEmail: null,
+        error: 'Invalid share ID',
+        convertedHtml: ''
+      }
+    };
+  }
+
+  try {
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/share/${id}`;
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        'User-Agent': 'Untitled88-SSR/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      return {
+        props: {
+          sharedEmail: null,
+          error: `Failed to load shared email: ${response.status} ${response.statusText}`,
+          convertedHtml: ''
+        }
+      };
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      const emailData = data.shared_email;
+      
+      // Convert JSON to HTML for display
+      let htmlToDisplay = '';
+      
+      try {
+        if (emailData.email_json && typeof emailData.email_json === 'object') {
+          // Import emailConverter dynamically for server-side use
+          const { emailConverter } = await import('@/utils/EmailConverter');
+          htmlToDisplay = emailConverter.jsonToHtml(emailData.email_json);
+        } else if (emailData.email_json && typeof emailData.email_json === 'string') {
+          try {
+            const parsedJson = JSON.parse(emailData.email_json);
+            const { emailConverter } = await import('@/utils/EmailConverter');
+            htmlToDisplay = emailConverter.jsonToHtml(parsedJson);
+          } catch (parseError) {
+            htmlToDisplay = emailData.email_html || '';
+          }
+        } else {
+          htmlToDisplay = emailData.email_html || '';
+        }
+      } catch (conversionError) {
+        htmlToDisplay = emailData.email_html || '';
+      }
+      
+      return {
+        props: {
+          sharedEmail: emailData,
+          error: null,
+          convertedHtml: htmlToDisplay
+        }
+      };
+    } else {
+      return {
+        props: {
+          sharedEmail: null,
+          error: data.error || 'Email not found',
+          convertedHtml: ''
+        }
+      };
+    }
+  } catch (err) {
+    return {
+      props: {
+        sharedEmail: null,
+        error: 'Failed to load shared email',
+        convertedHtml: ''
+      }
+    };
+  }
+};
