@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   
   // SEO and Performance Optimizations
   compress: true,
@@ -11,15 +10,39 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    domains: [
-      'lh3.googleusercontent.com', // Google profile images
-      'avatars.githubusercontent.com', // GitHub profile images
-      'images.unsplash.com', // Unsplash images (if needed)
-      's.gravatar.com', // Gravatar profile images (Auth0 default)
-      'cdn.auth0.com', // Auth0 CDN for default avatars
-      'secure.gravatar.com', // Secure Gravatar images
-      'untitled88.com', // Our own domain for images
-      'www.untitled88.com', // WWW version
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 's.gravatar.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.auth0.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'secure.gravatar.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'untitled88.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.untitled88.com',
+      },
     ],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
@@ -120,7 +143,7 @@ const nextConfig = {
   
   // PWA Support - removed experimental section to prevent warnings
   
-  // Bundle Analysis
+  // Bundle Analysis - using webpack for custom optimization
   webpack: (config, { dev, isServer }) => {
     // Optimize bundle size
     if (!dev && !isServer) {
@@ -137,6 +160,9 @@ const nextConfig = {
     
     return config
   },
+  
+  // Turbopack config (empty to use webpack instead)
+  turbopack: {},
 }
 
 module.exports = nextConfig

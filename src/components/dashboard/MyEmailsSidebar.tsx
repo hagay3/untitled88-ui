@@ -3,7 +3,6 @@
  * Displays all generated emails with subject, date, and header image
  */
 
-import React from 'react';
 import { emailConverter } from '@/utils/EmailConverter';
 
 interface EmailHistoryItem {

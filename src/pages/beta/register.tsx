@@ -3,7 +3,6 @@
  * Dedicated page for beta program registration
  */
 
-import React from 'react';
 import { useRouter } from 'next/router';
 import { BetaRegistrationForm } from '@/components/BetaRegistrationForm';
 import Link from 'next/link';

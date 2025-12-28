@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 import LoadingSpinner from './LoadingSpinner';
 
 interface BetaRegistrationFormProps {
@@ -26,6 +27,7 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
   onClose,
   className = ''
 }) => {
+  const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     name: '',
@@ -88,8 +90,13 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Immediately call onSuccess to show verification form
-        onSuccess?.({ email: formData.email, name: formData.name });
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess({ email: formData.email, name: formData.name });
+        } else {
+          // Fallback: redirect to homepage with success query parameter
+          router.push('/?betaRegistered=true');
+        }
       } else {
         setError(result.error || 'Registration failed. Please try again.');
       }

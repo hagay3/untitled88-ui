@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import SEO from "@/components/SEO";
 import { AppConfig } from "@/utils/AppConfig";
+import SalesDashboard from "@/components/dashboards/SalesDashboard";
+import FinancialDashboard from "@/components/dashboards/FinancialDashboard";
+import SuccessDialog from "@/components/ui/SuccessDialog";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -17,6 +20,8 @@ export default function Home() {
   const [displayText, setDisplayText] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showBetaSuccessDialog, setShowBetaSuccessDialog] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -24,14 +29,12 @@ export default function Home() {
 
   // Example prompts for dynamic typing animation
   const examplePrompts = [
-    "Create a welcome email for new subscribers with a warm greeting...",
-    "Design a product launch announcement with hero image and CTA...",
-    "Build a monthly newsletter with news and featured content...",
-    "Generate a promotional email for a seasonal sale campaign...",
-    "Create an abandoned cart recovery email with product images...",
-    "Design a customer feedback survey email with incentives...",
-    "Build a re-engagement email for inactive subscribers...",
-    "Generate a birthday email with personalized offers..."
+    "Build a finance dashboard showing expenses vs budget by department...",
+    "Show customer churn by subscription plan as a stacked bar chart...",
+    "What are the main drivers of revenue growth this quarter?",
+    "Explain the biggest drop in user engagement last month...",
+    "Summarize key insights from this dashboard in 3 bullet points...",
+    "Highlight any anomalies or unusual patterns in the data..."
   ];
 
   // Cleanup timeouts on unmount
@@ -176,18 +179,30 @@ export default function Home() {
     // For now, we'll just show them the home page
   }, [session]);
 
+  // Check for beta registration success query parameter
+  useEffect(() => {
+    if (router.query.betaRegistered === 'true') {
+      setShowBetaSuccessDialog(true);
+      // Remove query parameter from URL without reload
+      router.replace('/', undefined, { shallow: true });
+    }
+  }, [router.query.betaRegistered, router]);
+
   const handlePromptSubmit = () => {
+    // If user is not logged in, redirect to beta page
+    if (!session) {
+      router.push('/beta');
+      return;
+    }
+    
+    // If logged in but no prompt, don't proceed
     if (!prompt.trim()) return;
     
     // Store the prompt in session storage to pass to dashboard
-    sessionStorage.setItem('emailPrompt', prompt.trim());
+    sessionStorage.setItem('dashboardPrompt', prompt.trim());
     
-    // Navigate to dashboard or login based on authentication status
-    if (session) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
+    // Navigate to dashboard
+    router.push('/dashboard');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -234,9 +249,6 @@ export default function Home() {
     }
   };
 
-  const handleSignIn = () => {
-    router.push("/login");
-  };
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -255,122 +267,231 @@ export default function Home() {
   return (
     <>
       <SEO 
-        title="Tell us what kind of email you want to create and we'll generate it for you"
-        description="Create stunning email campaigns with AI. Generate beautiful HTML templates, preview across devices, and integrate with Brevo, Mailchimp & Klaviyo. Start free today!"
-        keywords="email marketing, AI email designer, email templates, HTML emails, email campaigns, email builder, responsive emails, Brevo integration, Mailchimp integration, Klaviyo integration"
+        title="Type your ideas. Get your dashboards. It's that simple."
+        description="Untitled88 brings AI-driven dashboards directly to your Databricks data. Ask questions, generate visualizations, and explore insights - all in one smooth experience."
+        keywords="AI dashboards, Databricks, data visualization, business intelligence, analytics, data insights, dashboard builder"
         url="/"
       />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      <div className="min-h-screen bg-[#0a0e1a] relative overflow-hidden">
+        {/* Animated background grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a1f35_1px,transparent_1px),linear-gradient(to_bottom,#1a1f35_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+        
+        {/* Animated particles */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ top: '10%', left: '20%', animationDelay: '0s' }}></div>
+          <div className="absolute w-1 h-1 bg-purple-500 rounded-full animate-pulse" style={{ top: '30%', left: '70%', animationDelay: '1s' }}></div>
+          <div className="absolute w-2 h-2 bg-cyan-500 rounded-full animate-pulse" style={{ top: '60%', left: '15%', animationDelay: '2s' }}></div>
+          <div className="absolute w-1 h-1 bg-blue-400 rounded-full animate-pulse" style={{ top: '80%', left: '80%', animationDelay: '1.5s' }}></div>
+          <div className="absolute w-1 h-1 bg-purple-400 rounded-full animate-pulse" style={{ top: '20%', left: '90%', animationDelay: '0.5s' }}></div>
+        </div>
         {/* Header/Navbar */}
-        <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-100">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16 items-center">
-              <div className="flex items-center gap-4">
+        <nav className="bg-[#0a0e1a]/80 backdrop-blur-md border-b border-gray-800/50 relative z-50 sticky top-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Logo */}
+              <div className="flex items-center gap-3">
                 <Image 
-                  src="/logo-transparent.png" 
-                  alt="Untitled88 Logo" 
-                  width={120}
-                  height={40}
-                  className="h-12 w-auto"
-                />
-                <Image 
-                  src="/logo-untitled88-text-only.png" 
+                  src="/untitled_88_dark_mode_small.png" 
                   alt="Untitled88" 
-                  width={1000}
-                  height={400}
-                  className="h-7 w-auto -ml-2"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto"
                 />
+                <span className="text-white font-bold text-xl hidden sm:block">Untitled88</span>
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-600/20 text-purple-400 border border-purple-500/30 hidden sm:block">
+                  ✨ AI
+                </span>
               </div>
-              <div className="flex items-center space-x-4">
+
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center space-x-1">
+                <button className="px-4 py-2 text-sm font-medium text-white hover:bg-gray-800/50 rounded-lg transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Builder
+                </button>
+                <button className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
+                  </svg>
+                  Templates
+                </button>
+                <button className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Integrations
+                </button>
+                <button className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Pricing
+                </button>
+                <button className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  About
+                </button>
+              </div>
+
+              {/* Right side - Auth */}
+              <div className="flex items-center gap-3">
                 {session ? (
-                  <div className="flex items-center space-x-4">
-                    <div className="relative" ref={dropdownRef}>
-                      <button
-                        onClick={() => setShowUserDropdown(!showUserDropdown)}
-                        className="flex items-center space-x-3 hover:bg-gray-50 rounded-full p-2 transition-colors"
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowUserDropdown(!showUserDropdown)}
+                      className="flex items-center space-x-2 hover:bg-gray-800/50 rounded-lg px-3 py-2 transition-colors"
+                    >
+                      <Image
+                        src={session.user?.image || "/default-avatar.png"}
+                        alt="User"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full ring-2 ring-purple-500/50"
+                      />
+                      <span className="text-sm font-medium text-gray-200 hidden sm:block">
+                        {session.user?.name}
+                      </span>
+                      <svg 
+                        className={`w-4 h-4 text-gray-400 transition-transform hidden sm:block ${showUserDropdown ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
                       >
-                        <Image
-                          src={session.user?.image || "/default-avatar.png"}
-                          alt="User"
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-full"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          {session.user?.name}
-                        </span>
-                        <svg 
-                          className={`w-4 h-4 text-gray-500 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {showUserDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 py-2 z-50">
+                        <button
+                          onClick={() => {
+                            router.push("/dashboard");
+                            setShowUserDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center space-x-2 transition-colors"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      
-                      {/* Dropdown Menu */}
-                      {showUserDropdown && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 glass-card">
-                          <button
-                            onClick={() => {
-                              router.push("/dashboard");
-                              setShowUserDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
-                            </svg>
-                            <span>Dashboard</span>
-                          </button>
-                          <div className="border-t border-gray-100 my-1"></div>
-                          <button
-                            onClick={() => {
-                              handleSignOut();
-                              setShowUserDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            <span>Logout</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                          </svg>
+                          <span>Dashboard</span>
+                        </button>
+                        <div className="border-t border-gray-800 my-1"></div>
+                        <button
+                          onClick={() => {
+                            handleSignOut();
+                            setShowUserDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center space-x-2 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <Button onClick={handleSignIn} className="rounded-full bg-black hover:bg-gray-800 text-white">
-                    Sign In
-                  </Button>
+                  <>
+                
+                  </>
                 )}
+
+                {/* Mobile menu button */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+                >
+                  {mobileMenuOpen ? (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
+
+            {/* Mobile Menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden py-4 border-t border-gray-800/50 animate-in slide-in-from-top duration-200">
+                <div className="flex flex-col space-y-2">
+                  <button className="px-4 py-3 text-sm font-medium text-white hover:bg-gray-800/50 rounded-lg transition-colors text-left flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Builder
+                  </button>
+                  <button className="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors text-left flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z" />
+                    </svg>
+                    Templates
+                  </button>
+                  <button className="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors text-left flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Integrations
+                  </button>
+                  <button className="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors text-left flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Pricing
+                  </button>
+                  <button className="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors text-left flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    About
+                  </button>
+                  {!session && (
+                    <>
+                      <div className="border-t border-gray-800/50 my-2"></div>
+                      <button 
+                        onClick={() => router.push('/login')}
+                        className="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors text-left"
+                      >
+                        Sign In
+                      </button>
+                      <button 
+                        onClick={() => router.push('/beta')}
+                        className="px-4 py-3 text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg transition-all shadow-lg"
+                      >
+                        Get Started
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </nav>
 
         {/* Beta Registration Banner */}
         {!session && (
-          <div className="bg-gradient-to-r from-blue-400 to-purple-500 text-white py-4">
+          <div className="bg-gradient-to-r from-cyan-500 via-blue-500 to-blue-600 text-white py-3 relative z-10">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
+                  <span className="text-2xl">🚀</span>
                   <div>
-                    <p className="font-semibold">🚀 Join the Beta Program</p>
-                    <p className="text-sm text-white/90">Get early access to AI-powered email marketing</p>
+                    <p className="font-semibold">Join the Beta Program</p>
+                    <p className="text-sm text-white/90">Get early access to AI-powered dashboards</p>
                   </div>
                 </div>
                 <Button
                   onClick={() => router.push('/beta')}
-                  className="bg-white text-blue-600 hover:bg-gray-100 font-medium px-6 py-2 rounded-full"
+                  className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-6 py-2 rounded-full shadow-lg"
                 >
                   Join Beta
                 </Button>
@@ -382,18 +503,53 @@ export default function Home() {
   
 
         {/* Hero Section */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 relative z-10">
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-medium text-gray-900 mb-6 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              Type your ideas. Get your email. Its that simple.
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+              Type your ideas. Get your dashboards. It's that simple.
             </h1>
-            <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              {AppConfig.site_name} lets you build fully-functional emails in minutes with just your words. No coding necessary.
+            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+              Untitled88 brings AI-driven dashboards directly to your Databricks data. Ask questions, generate visualizations, and explore insights - all in one smooth experience.
             </p>
+            
+            {/* Example Prompts Pills */}
+            <div className="max-w-2xl mx-auto mb-4">
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button
+                  onClick={() => handleExampleClick("Build a finance dashboard showing expenses vs budget by department.")}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                >
+                  📊 Summarize Q3 Revenue
+                </button>
+                <button
+                  onClick={() => handleExampleClick("Show customer churn by subscription plan as a stacked bar chart.")}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                >
+                  📈 Build Sales Dashboard
+                </button>
+                <button
+                  onClick={() => handleExampleClick("What are the main drivers of revenue growth this quarter?")}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                >
+                  🔍 Analyze Churn by Segment
+                </button>
+                <button
+                  onClick={() => handleExampleClick("Explain the biggest drop in user engagement last month.")}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                >
+                  💡 Install Any Assests I'll Need
+                </button>
+              </div>
+            </div>
             
             {/* Simple Prompt Input */}
             <div className="max-w-2xl mx-auto mb-8">
               <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-20"></div>
                 <textarea
                   ref={textareaRef}
                   value={prompt}
@@ -402,7 +558,7 @@ export default function Home() {
                   onBlur={handleInputBlur}
                   onKeyDown={handleKeyPress}
                   placeholder=""
-                  className="w-full min-h-[60px] max-h-[200px] p-4 pr-24 pb-14 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-800 placeholder-gray-400 leading-relaxed bg-white shadow-sm font-normal"
+                  className="relative w-full min-h-[60px] max-h-[200px] p-4 pr-24 pb-14 border border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-white placeholder-gray-500 leading-relaxed bg-gray-900/80 backdrop-blur-sm shadow-2xl font-normal"
                   style={{ 
                     fontSize: '16px',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -412,7 +568,7 @@ export default function Home() {
                 {/* Dynamic typing animation overlay */}
                 {!isUserFocused && !prompt && displayText && (
                   <div 
-                    className="absolute top-4 left-4 pointer-events-none text-gray-500 leading-relaxed z-10 font-normal"
+                    className="absolute top-4 left-4 pointer-events-none text-gray-400 leading-relaxed z-10 font-normal"
                     style={{ 
                       fontSize: '16px',
                       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -426,14 +582,11 @@ export default function Home() {
                 {/* Build Button */}
                 <Button
                   onClick={handlePromptSubmit}
-                  disabled={!prompt.trim()}
-                  className="absolute right-3 bottom-3 bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center text-sm font-medium"
+                  disabled={!!session && !prompt.trim()}
+                  className="absolute right-3 bottom-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center text-sm font-medium shadow-lg shadow-purple-500/50"
                   style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
                 >
-                  {session ? 'Generate' : 'Build'}
-                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  ⚡ {session ? 'Generate' : 'Create'}
                 </Button>
                 
                 {/* Cursor indicator */}
@@ -448,113 +601,68 @@ export default function Home() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-500 mb-12 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              Press <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Enter</kbd> to generate • Not sure where to start? Try one of these:
+            <p className="text-sm text-gray-400 mb-12 font-normal text-center" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+              Press <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs font-mono text-gray-300">⌘ Enter</kbd> or <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs font-mono text-gray-300">Ctrl Enter</kbd> to generate
             </p>
-
-            {/* Example Prompts */}
-            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-16">
-              <button
-                onClick={() => handleExampleClick("Create a welcome email for new subscribers with a warm greeting and company introduction")}
-                className="text-left p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-              >
-                <div className="text-sm text-gray-600 leading-relaxed group-hover:text-blue-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Create a welcome email for new subscribers with a warm greeting and company introduction
-                </div>
-                <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <span className="text-xs text-blue-500 font-medium" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Click to use →</span>
-                </div>
-              </button>
-              <button
-                onClick={() => handleExampleClick("Design a product launch announcement email with hero image, features, and call-to-action")}
-                className="text-left p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-              >
-                <div className="text-sm text-gray-600 leading-relaxed group-hover:text-blue-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Design a product launch announcement email with hero image, features, and call-to-action
-                </div>
-                <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <span className="text-xs text-blue-500 font-medium" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Click to use →</span>
-                </div>
-              </button>
-              <button
-                onClick={() => handleExampleClick("Build a monthly newsletter template with sections for news, featured content, and social links")}
-                className="text-left p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-              >
-                <div className="text-sm text-gray-600 leading-relaxed group-hover:text-blue-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Build a monthly newsletter template with sections for news, featured content, and social links
-                </div>
-                <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <span className="text-xs text-blue-500 font-medium" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Click to use →</span>
-                </div>
-              </button>
-            </div>
           </div>
 
-          {/* Features Section */}
-          <div className="grid md:grid-cols-4 gap-8 mt-20">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2" />
-                </svg>
+          {/* Interactive Dashboards Section */}
+          <div className="max-w-[95vw] xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-20 relative z-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+              Key Features
+            </h2>
+            <p className="text-gray-400 mb-6 sm:mb-8 text-center max-w-2xl mx-auto">
+              Powerful analytics and insights at your fingertips
+            </p>
+            <div className="space-y-6 sm:space-y-8">
+              <div className="transform transition-transform hover:scale-[1.01] duration-300 w-full aspect-video">
+                <FinancialDashboard />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Top-Designed Templates</h3>
-              <p className="text-sm text-gray-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Professional HTML email templates designed by experts</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+              <div className="transform transition-transform hover:scale-[1.01] duration-300 w-full aspect-video">
+                <SalesDashboard />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>AI Chat Builder</h3>
-              <p className="text-sm text-gray-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Integrated chat within the platform for generating emails</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Mobile & Desktop Preview</h3>
-              <p className="text-sm text-gray-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Visual layout previews across all devices</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>ESP Integration</h3>
-              <p className="text-sm text-gray-600 font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>Connect with Mailchimp (coming soon: Brevo, Klaviyo)</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <footer className="bg-white border-t border-gray-100 mt-20">
+        <footer className="bg-transparent border-t border-gray-800/50 mt-20 relative z-10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center text-gray-500 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+              <div className="text-center md:text-left">
+                <p className="text-gray-300 text-sm font-medium">Ask. Visualize. Understand.</p>
+              </div>
+              <div className="text-center md:text-left">
+                <p className="text-gray-300 text-sm font-medium">From data to dashboards - in seconds.</p>
+              </div>
+              <div className="text-center md:text-left">
+                <p className="text-gray-300 text-sm font-medium">Turn questions into insights, instantly.</p>
+              </div>
+              <div className="text-center md:text-left">
+                <p className="text-gray-300 text-sm font-medium">Chat with your data. See the answers.</p>
+              </div>
+              <div className="text-center md:text-left">
+                <p className="text-gray-300 text-sm font-medium">Your data. Your dashboards. Powered by AI.</p>
+              </div>
+            </div>
+            <div className="text-center text-gray-500 text-sm border-t border-gray-800 pt-8">
               <p className="font-normal mb-3" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>&copy; 2025 {AppConfig.site_name}. All rights reserved.</p>
               <div className="flex items-center justify-center gap-6">
                 <a 
                   href="/privacy-policy" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-blue-600 transition-colors font-normal"
+                  className="text-gray-400 hover:text-purple-400 transition-colors font-normal"
                   style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
                 >
                   Privacy Policy
                 </a>
-                <span className="text-gray-300">•</span>
+                <span className="text-gray-700">•</span>
                 <a 
                   href="/terms" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-blue-600 transition-colors font-normal"
+                  className="text-gray-400 hover:text-purple-400 transition-colors font-normal"
                   style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
                 >
                   Terms of Service
@@ -563,6 +671,14 @@ export default function Home() {
             </div>
           </div>
         </footer>
+
+        {/* Beta Registration Success Dialog */}
+        <SuccessDialog
+          isOpen={showBetaSuccessDialog}
+          message="Thank you for joining the beta program! We will be in touch in the near future."
+          onClose={() => setShowBetaSuccessDialog(false)}
+          duration={6000}
+        />
       </div>
     </>
   );

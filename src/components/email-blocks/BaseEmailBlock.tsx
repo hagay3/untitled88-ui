@@ -3,8 +3,8 @@
  * Common functionality for all email block types
  */
 
-import React from 'react';
 import { EmailBlock, BlockStyles, SIZE_MAPPINGS, SizeOption } from '@/types/EmailBlock';
+import type { ReactNode, CSSProperties, MouseEvent, FC } from 'react';
 
 export interface BaseEmailBlockProps {
   block: EmailBlock;
@@ -29,14 +29,14 @@ export interface BlockActionToolbarProps {
   onMoveDown?: (blockId: string) => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
-  customActions?: React.ReactNode;
+  customActions?: ReactNode;
   onAlignmentChange?: (blockId: string, alignment: 'left' | 'center' | 'right') => void;
   currentAlignment?: 'left' | 'center' | 'right';
 }
 
 // Convert BlockStyles to CSS styles
-export const blockStylesToCss = (styles: BlockStyles): React.CSSProperties => {
-  const cssStyles: React.CSSProperties = {};
+export const blockStylesToCss = (styles: BlockStyles): CSSProperties => {
+  const cssStyles: CSSProperties = {};
 
   // Convert size options to actual values
   if (styles.padding) {
@@ -85,7 +85,7 @@ export const blockStylesToCss = (styles: BlockStyles): React.CSSProperties => {
 };
 
 // Action toolbar for non-text blocks
-export const BlockActionToolbar: React.FC<BlockActionToolbarProps> = ({
+export const BlockActionToolbar: FC<BlockActionToolbarProps> = ({
   blockId,
   onDelete,
   onClone,
@@ -196,7 +196,7 @@ export const EmailBlockWrapper: React.FC<{
   block: EmailBlock;
   isSelected?: boolean;
   onSelect?: (blockId: string) => void;
-  children: React.ReactNode;
+  children: ReactNode;
   showToolbar?: boolean;
   toolbarProps?: Omit<BlockActionToolbarProps, 'blockId'>;
 }> = ({
@@ -207,7 +207,7 @@ export const EmailBlockWrapper: React.FC<{
   showToolbar = false,
   toolbarProps
 }) => {
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: MouseEvent) => {
     e.stopPropagation();
     onSelect?.(block.id);
   };

@@ -3,7 +3,6 @@
  * Dedicated page for beta access code verification
  */
 
-import React from 'react';
 import { useRouter } from 'next/router';
 import { BetaAccessCodeForm } from '@/components/BetaAccessCodeForm';
 import Link from 'next/link';
