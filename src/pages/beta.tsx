@@ -1,38 +1,21 @@
 /**
  * Beta Page
- * Unified page for beta registration and verification
+ * Page for beta registration
  */
 
-import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import { BetaRegistrationForm } from '@/components/BetaRegistrationForm';
-import { BetaAccessCodeForm } from '@/components/BetaAccessCodeForm';
 import Link from 'next/link';
 import Image from 'next/image';
-
-type BetaStep = 'registration' | 'verification';
 
 export default function BetaPage() {
   const router = useRouter();
   useSession(); // Ensure session is initialized
-  const [currentStep, setCurrentStep] = useState<BetaStep>('registration');
 
   const handleRegistrationSuccess = () => {
-    // Show verification form immediately after successful registration
-    setCurrentStep('verification');
-  };
-
-  const handleVerificationSuccess = (_userData: { email: string; name: string }) => {
-    // Set beta verification in localStorage
-    localStorage.setItem('beta_verified', 'true');
-    
-    // Always redirect to login page after verification
-    router.push('/login');
-  };
-
-  const handleBackToRegistration = () => {
-    setCurrentStep('registration');
+    // Redirect to homepage with success query parameter
+    router.push('/?betaRegistered=true');
   };
 
   return (
@@ -76,61 +59,26 @@ export default function BetaPage() {
         <div className="w-full max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            {currentStep === 'registration' ? (
-              <>
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Join the Beta Program
-                </h1>
-                
-                <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Get early access to the future of AI-powered dashboards. 
-                  Fill out the form below to request your beta invitation.
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Enter Your Access Code
-                </h1>
-                
-                <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-                  Check your email for the 6-digit access code we sent you. 
-                  Enter it below to complete your beta registration.
-                </p>
-              </>
-            )}
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+              Join the Beta Program
+            </h1>
+            
+            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+              Get early access to the future of AI-powered dashboards. 
+              Fill out the form below to request your beta invitation.
+            </p>
           </div>
 
           {/* Form Container */}
           <div className="flex justify-center mb-8">
-            {currentStep === 'registration' ? (
-              <BetaRegistrationForm 
-                onSuccess={handleRegistrationSuccess}
-                className="w-full max-w-md"
-              />
-            ) : (
-              <BetaAccessCodeForm 
-                onSuccess={handleVerificationSuccess}
-                onClose={handleBackToRegistration}
-                className="w-full max-w-md"
-              />
-            )}
+            <BetaRegistrationForm 
+              onSuccess={handleRegistrationSuccess}
+              className="w-full max-w-md"
+            />
           </div>
 
           {/* Footer */}
           <div className="text-center">
-            {currentStep === 'verification' && (
-              <p className="text-sm text-gray-400 mb-4">
-                Didn&apos;t receive the code?{' '}
-                <button 
-                  onClick={handleBackToRegistration}
-                  className="text-purple-400 hover:text-purple-300 underline transition-colors"
-                >
-                  Register again
-                </button>
-              </p>
-            )}
-            
             <div className="flex justify-center space-x-6 text-xs text-gray-400">
               <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">Privacy Policy</Link>
               <Link href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">Terms of Service</Link>

@@ -261,13 +261,15 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
             disabled={isSubmitting}
           >
             <option value="">Select your role</option>
-            <option value="Marketing Manager">Marketing Manager</option>
-            <option value="Email Marketer">Email Marketer</option>
-            <option value="Designer">Designer</option>
-            <option value="Founder/CEO">Founder/CEO</option>
-            <option value="Developer">Developer</option>
-            <option value="Freelancer">Freelancer</option>
-            <option value="Agency Owner">Agency Owner</option>
+            <option value="BI Developer">BI Developer</option>
+            <option value="Data Engineer">Data Engineer</option>
+            <option value="Data Analyst">Data Analyst</option>
+            <option value="Data Scientist">Data Scientist</option>
+            <option value="Analytics Engineer">Analytics Engineer</option>
+            <option value="Business Intelligence Manager">Business Intelligence Manager</option>
+            <option value="Data Architect">Data Architect</option>
+            <option value="ETL Developer">ETL Developer</option>
+            <option value="Data Warehouse Developer">Data Warehouse Developer</option>
             <option value="Other">Other</option>
           </select>
         </div>

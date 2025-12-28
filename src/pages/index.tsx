@@ -8,7 +8,7 @@ import SEO from "@/components/SEO";
 import { AppConfig } from "@/utils/AppConfig";
 import SalesDashboard from "@/components/dashboards/SalesDashboard";
 import FinancialDashboard from "@/components/dashboards/FinancialDashboard";
-import SuccessDialog from "@/components/ui/SuccessDialog";
+import PartySuccessDialog from "@/components/ui/PartySuccessDialog";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -673,9 +673,9 @@ export default function Home() {
         </footer>
 
         {/* Beta Registration Success Dialog */}
-        <SuccessDialog
+        <PartySuccessDialog
           isOpen={showBetaSuccessDialog}
-          message="Thank you for joining the beta program! We will be in touch in the near future."
+          message="We will be in touch very soon!"
           onClose={() => setShowBetaSuccessDialog(false)}
           duration={6000}
         />
