@@ -34,6 +34,7 @@ export default function PartySuccessDialog({
       setIsVisible(true);
       
       // Generate confetti particles
+      const colors = ['#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'] as const;
       const particles = Array.from({ length: 50 }, (_, i) => ({
         id: i,
         x: Math.random() * 100,
@@ -41,7 +42,7 @@ export default function PartySuccessDialog({
         delay: Math.random() * 1000,
         duration: 2 + Math.random() * 2,
         rotation: Math.random() * 360,
-        color: ['#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'][Math.floor(Math.random() * 6)]
+        color: colors[Math.floor(Math.random() * colors.length)] || colors[0]
       }));
       setConfetti(particles);
       
