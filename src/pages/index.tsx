@@ -607,18 +607,18 @@ export default function Home() {
           </div>
 
           {/* Interactive Dashboards Section */}
-          <div className="max-w-[95vw] xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-20 relative z-10">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 text-center" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+          <div className="max-w-[95vw] xl:max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-8 mb-12 sm:mb-20 relative z-10">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 text-center px-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
               Key Features
             </h2>
-            <p className="text-gray-400 mb-6 sm:mb-8 text-center max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 lg:mb-8 text-center max-w-2xl mx-auto px-2">
               Powerful analytics and insights at your fingertips
             </p>
-            <div className="space-y-6 sm:space-y-8">
-              <div className="transform transition-transform hover:scale-[1.01] duration-300 w-full aspect-video">
+            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+              <div className="transform transition-transform hover:scale-[1.01] duration-300 w-full min-h-[600px] sm:min-h-[500px] lg:aspect-video">
                 <FinancialDashboard />
               </div>
-              <div className="transform transition-transform hover:scale-[1.01] duration-300 w-full aspect-video">
+              <div className="transform transition-transform hover:scale-[1.01] duration-300 w-full min-h-[600px] sm:min-h-[500px] lg:aspect-video">
                 <SalesDashboard />
               </div>
             </div>

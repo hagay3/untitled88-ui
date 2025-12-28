@@ -109,8 +109,8 @@ const SalesDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9ca3af" fontSize={10} />
-                <YAxis stroke="#9ca3af" fontSize={10} />
+                <XAxis dataKey="time" stroke="#9ca3af" fontSize={9} />
+                <YAxis stroke="#9ca3af" fontSize={9} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#1f2937', 
@@ -168,23 +168,24 @@ const SalesDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={campaignsData} 
-                margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                margin={{ top: 5, right: 5, left: 0, bottom: 50 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
                 <XAxis 
                   dataKey="name" 
                   stroke="#9ca3af" 
-                  fontSize={10}
+                  fontSize={9}
                   tick={{ fill: '#9ca3af' }}
-                  angle={-15}
+                  angle={-25}
                   textAnchor="end"
-                  height={60}
+                  height={50}
                 />
                 <YAxis 
                   stroke="#9ca3af" 
-                  fontSize={10}
+                  fontSize={9}
                   tick={{ fill: '#9ca3af' }}
                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
+                  width={50}
                 />
                 <Tooltip
                   contentStyle={{ 

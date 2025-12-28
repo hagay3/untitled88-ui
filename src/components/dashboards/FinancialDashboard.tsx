@@ -126,8 +126,8 @@ const FinancialDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueExpensesData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
+                <XAxis dataKey="time" stroke="#9ca3af" fontSize={10} />
+                <YAxis stroke="#9ca3af" fontSize={10} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#1f2937', 
@@ -140,7 +140,7 @@ const FinancialDashboard: React.FC = () => {
                   itemStyle={{ color: '#fff' }}
                   cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }}
                 />
-                <Legend wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }} />
+                <Legend wrapperStyle={{ color: '#9ca3af', fontSize: '10px' }} />
                 <Line 
                   type="monotone" 
                   dataKey="revenue" 
@@ -181,8 +181,8 @@ const FinancialDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={costBreakdownData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis type="number" stroke="#9ca3af" fontSize={12} domain={[0, 50]} />
-                <YAxis dataKey="category" type="category" stroke="#ffffff" fontSize={12} width={80} />
+                <XAxis type="number" stroke="#9ca3af" fontSize={10} domain={[0, 50]} />
+                <YAxis dataKey="category" type="category" stroke="#ffffff" fontSize={10} width={60} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#1f2937', 
@@ -222,8 +222,8 @@ const FinancialDashboard: React.FC = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
+                <XAxis dataKey="time" stroke="#9ca3af" fontSize={10} />
+                <YAxis stroke="#9ca3af" fontSize={10} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#1f2937', 
@@ -259,8 +259,8 @@ const FinancialDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
+                <XAxis stroke="#9ca3af" fontSize={10} />
+                <YAxis stroke="#9ca3af" fontSize={10} />
                 <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#1f2937', 
@@ -274,7 +274,7 @@ const FinancialDashboard: React.FC = () => {
                   formatter={(value: number | undefined) => value !== undefined ? `${value}%` : ''}
                   cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }}
                 />
-                <Legend wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }} />
+                <Legend wrapperStyle={{ color: '#9ca3af', fontSize: '10px' }} />
                 <Line
                   type="monotone"
                   data={forecastActualData}
