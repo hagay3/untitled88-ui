@@ -119,7 +119,7 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
         
         <h2 className="text-2xl font-bold text-black mb-2">Join the Beta</h2>
         <p className="text-gray-600">
-          Get early access to the future of AI-powered email marketing
+          Get early access
         </p>
       </div>
 
@@ -286,7 +286,7 @@ export const BetaRegistrationForm: React.FC<BetaRegistrationFormProps> = ({
             onChange={handleInputChange}
             rows={3}
             className="glass-input w-full px-4 py-3 text-black placeholder-gray-500 resize-none"
-            placeholder="Tell us what you're looking for in an email marketing tool..."
+            placeholder="Tell us what you're looking for in a BI tool powered by AI"
             disabled={isSubmitting}
           />
         </div>
