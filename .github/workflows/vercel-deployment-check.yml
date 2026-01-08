@@ -116,7 +116,7 @@ jobs:
           curl -X POST https://slack.com/api/chat.postMessage \
             -H "Authorization: Bearer ${SLACK_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d "{\"channel\": \"deployments\", \"text\": \"${MESSAGE}\"}"
+            -d "{\"channel\": \"deployments88\", \"text\": \"${MESSAGE}\"}"
 
       - name: Send Slack Notification - Failure
         if: steps.check-deployment.outputs.status == 'failure' || steps.check-deployment.outputs.status == 'timeout'
