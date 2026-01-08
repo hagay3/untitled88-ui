@@ -1,0 +1,136 @@
+name: Check Vercel Deployment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  check-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Fetch all history for commit hash
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Wait for Vercel Deployment
+        id: check-deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          PROJECT_NAME="untitled88-ui"
+          TEAM_ID="hagais-projects-2ce0ef2b"
+          COMMIT_SHA="${{ github.sha }}"
+          
+          echo "Waiting for Vercel deployment to complete..."
+          echo "Looking for deployment with commit SHA: ${COMMIT_SHA}"
+          
+          # Wait a bit for Vercel to start the deployment
+          sleep 30
+          
+          MAX_ATTEMPTS=60
+          ATTEMPT=0
+          DEPLOYMENT_STATUS=""
+          DEPLOYMENT_ID=""
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            # Get deployments for the project
+            RESPONSE=$(curl -s -X GET \
+              "https://api.vercel.com/v6/deployments?projectId=${PROJECT_NAME}&teamId=${TEAM_ID}&limit=10" \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json")
+            
+            # Try to find deployment matching our commit SHA
+            DEPLOYMENT_ID=$(echo $RESPONSE | jq -r --arg sha "$COMMIT_SHA" '.deployments[] | select(.meta.githubCommitSha == $sha or .meta.gitlabCommitSha == $sha) | .uid' | head -1)
+            
+            # If not found by commit SHA, get the latest deployment
+            if [ -z "$DEPLOYMENT_ID" ] || [ "$DEPLOYMENT_ID" = "null" ]; then
+              DEPLOYMENT_ID=$(echo $RESPONSE | jq -r '.deployments[0].uid' 2>/dev/null)
+            fi
+            
+            if [ -z "$DEPLOYMENT_ID" ] || [ "$DEPLOYMENT_ID" = "null" ]; then
+              echo "Deployment not found yet, waiting... (attempt $((ATTEMPT + 1))/$MAX_ATTEMPTS)"
+              sleep 10
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+            
+            echo "Found deployment: ${DEPLOYMENT_ID}"
+            
+            # Get deployment status
+            DEPLOYMENT_INFO=$(curl -s -X GET \
+              "https://api.vercel.com/v13/deployments/${DEPLOYMENT_ID}?teamId=${TEAM_ID}" \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json")
+            
+            DEPLOYMENT_STATUS=$(echo $DEPLOYMENT_INFO | jq -r '.readyState' 2>/dev/null)
+            
+            if [ -z "$DEPLOYMENT_STATUS" ] || [ "$DEPLOYMENT_STATUS" = "null" ]; then
+              echo "Could not get deployment status, retrying..."
+              sleep 10
+              ATTEMPT=$((ATTEMPT + 1))
+              continue
+            fi
+            
+            echo "Deployment status: ${DEPLOYMENT_STATUS} (attempt $((ATTEMPT + 1))/$MAX_ATTEMPTS)"
+            
+            # Check if deployment is complete (ready, error, or canceled)
+            if [ "$DEPLOYMENT_STATUS" = "READY" ]; then
+              echo "Deployment successful!"
+              echo "status=success" >> $GITHUB_OUTPUT
+              echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+              break
+            elif [ "$DEPLOYMENT_STATUS" = "ERROR" ] || [ "$DEPLOYMENT_STATUS" = "CANCELED" ]; then
+              echo "Deployment failed with status: ${DEPLOYMENT_STATUS}"
+              echo "status=failure" >> $GITHUB_OUTPUT
+              echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+              break
+            fi
+            
+            # Still building (BUILDING, QUEUED, INITIALIZING, etc.), wait and retry
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "Timeout waiting for deployment"
+            echo "status=timeout" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack Notification - Success
+        if: steps.check-deployment.outputs.status == 'success'
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          BRANCH_NAME="${{ github.ref_name }}"
+          TIMESTAMP=$(date +'%d/%m/%Y %H:%M')
+          MESSAGE="✅ [untitled88-ui] Deployment Success | ${TIMESTAMP} | ${BRANCH_NAME} | ${COMMIT_HASH} | All servers: Success"
+          
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${SLACK_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\": \"deployments\", \"text\": \"${MESSAGE}\"}"
+
+      - name: Send Slack Notification - Failure
+        if: steps.check-deployment.outputs.status == 'failure' || steps.check-deployment.outputs.status == 'timeout'
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          BRANCH_NAME="${{ github.ref_name }}"
+          TIMESTAMP=$(date +'%d/%m/%Y %H:%M')
+          STATUS="${steps.check-deployment.outputs.status}"
+          ERROR_MSG="Vercel deployment ${STATUS}"
+          MESSAGE="❌ [untitled88-ui] Deployment Failure | ${TIMESTAMP} | ${BRANCH_NAME} | ${COMMIT_HASH} | Error: ${ERROR_MSG}"
+          
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${SLACK_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"channel\": \"deployments88\", \"text\": \"${MESSAGE}\"}"
