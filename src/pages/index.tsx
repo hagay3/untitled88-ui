@@ -268,8 +268,8 @@ export default function Home() {
     <>
       <SEO 
         title="Type your ideas. Get your dashboards. It's that simple."
-        description="Untitled88 brings AI-driven dashboards directly to your Databricks data. Ask questions, generate visualizations, and explore insights - all in one smooth experience."
-        keywords="AI dashboards, Databricks, data visualization, business intelligence, analytics, data insights, dashboard builder"
+        description="Untitled88 turns your data into AI-driven dashboards. Ask questions, generate visualizations, and explore insights - all in one smooth experience."
+        keywords="AI dashboards, Databricks, Tableau, data visualization, business intelligence, analytics, data insights, dashboard builder"
         url="/"
       />
       <div className="min-h-screen bg-[#0a0e1a] relative overflow-hidden">
@@ -509,7 +509,7 @@ export default function Home() {
               Type your ideas. Get your dashboards. It's that simple.
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              Untitled88 brings AI-driven dashboards directly to your Databricks data. Ask questions, generate visualizations, and explore insights - all in one smooth experience.
+              Untitled88 turns your data into AI-driven dashboards. Ask questions, generate visualizations, and explore insights - all in one smooth experience.
             </p>
             
             {/* Example Prompts Pills */}
