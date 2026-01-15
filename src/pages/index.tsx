@@ -509,7 +509,7 @@ export default function Home() {
               Type your ideas. Get your dashboards. It's that simple.
             </h1>
             <h2 className="text-2xl md:text-3xl font-semibold text-purple-400 mb-6 leading-tight font-instrument-sans">
-              Type Your Questions. Get Your Dashboards.
+              Type Your Data Questions. Get Your Answers.
             </h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed font-normal font-inter">
               Untitled88 answers analytical questions and creates AI-driven dashboards from your data, all in one smooth experience.
@@ -522,25 +522,25 @@ export default function Home() {
                   onClick={() => handleExampleClick("Build a finance dashboard showing expenses vs budget by department.")}
                   className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
-                  📊 Summarize Q3 Revenue
+                  📊 Build a finance dashboard
                 </button>
                 <button
                   onClick={() => handleExampleClick("Show customer churn by subscription plan as a stacked bar chart.")}
                   className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
-                  📈 Build Sales Dashboard
+                  📈 Show customer churn by plan
                 </button>
                 <button
                   onClick={() => handleExampleClick("What are the main drivers of revenue growth this quarter?")}
                   className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
-                  🔍 Analyze Churn by Segment
+                  🔍 Main revenue growth drivers?
                 </button>
                 <button
                   onClick={() => handleExampleClick("Explain the biggest drop in user engagement last month.")}
                   className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
-                  💡 Install Any Assests I'll Need
+                  💡 Biggest drop in engagement?
                 </button>
               </div>
             </div>
@@ -642,7 +642,7 @@ export default function Home() {
               </div>
             </div>
             <div className="text-center text-gray-500 text-sm border-t border-gray-800 pt-8">
-              <p className="font-normal mb-3 font-inter">&copy; 2025 {AppConfig.site_name}. All rights reserved.</p>
+              <p className="font-normal mb-3 font-inter">&copy; 2026 {AppConfig.site_name}. All rights reserved.</p>
               <div className="flex items-center justify-center gap-6">
                 <a
                   href="/privacy-policy"
