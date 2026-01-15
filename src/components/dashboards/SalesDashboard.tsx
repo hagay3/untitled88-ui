@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   LineChart,
   Line,
@@ -19,6 +19,33 @@ import dynamic from 'next/dynamic';
 const GeoMapChart = dynamic(() => import('./GeoMapChart'), { ssr: false });
 
 const SalesDashboard: React.FC = () => {
+  const [isVisible, setIsVisible] = useState(false);
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '50px',
+      }
+    );
+
+    if (dashboardRef.current) {
+      observer.observe(dashboardRef.current);
+    }
+
+    return () => {
+      if (dashboardRef.current) {
+        observer.unobserve(dashboardRef.current);
+      }
+    };
+  }, []);
 
   // Mock data for revenue trend
   const revenueTrendData = [
@@ -39,61 +66,66 @@ const SalesDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="bg-[#1a1d2e] text-white rounded-xl p-3 sm:p-4 shadow-2xl border border-gray-800 h-full w-full overflow-hidden flex flex-col">
+    <div 
+      ref={dashboardRef}
+      className={`bg-[#1a1d2e] text-white rounded-xl p-2 sm:p-3 shadow-2xl border border-gray-800 h-full w-full overflow-hidden flex flex-col transition-all duration-700 ease-out ${
+        isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'
+      }`}
+    >
       {/* Header with Logo */}
-      <div className="flex items-center justify-between mb-3 sm:mb-4 flex-shrink-0">
+      <div className="flex items-center justify-between mb-1.5 sm:mb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg">
             <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <span className="text-base sm:text-lg font-semibold">Revenue & Growth</span>
+          <span className="text-sm sm:text-base font-semibold">Revenue & Growth</span>
         </div>
 
       </div>
 
       {/* Top Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4 flex-shrink-0">
-        <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50 hover:border-green-500/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/20">
-          <div className="text-[10px] sm:text-xs text-gray-400 mb-1">Total Revenue</div>
-          <div className="text-xl sm:text-2xl font-bold text-white mb-1">$88M</div>
-          <div className="h-1 bg-green-500 rounded-full w-16 mb-1"></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-shrink-0">
+        <div className="bg-gray-800/50 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 hover:border-green-500/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/20">
+          <div className="text-[9px] sm:text-[10px] text-gray-400 mb-0.5">Total Revenue</div>
+          <div className="text-base sm:text-lg font-bold text-white mb-0.5">$88M</div>
+          <div className="h-1 bg-green-500 rounded-full w-12 mb-0.5"></div>
           <div className="flex items-center text-green-400">
-            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50 hover:border-blue-400/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-blue-400/20">
-          <div className="text-[10px] sm:text-xs text-gray-400 mb-1">Monthly Growth</div>
-          <div className="text-xl sm:text-2xl font-bold text-white mb-1">15%</div>
-          <div className="h-1 bg-blue-400 rounded-full w-12 mb-1"></div>
+        <div className="bg-gray-800/50 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 hover:border-blue-400/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-blue-400/20">
+          <div className="text-[9px] sm:text-[10px] text-gray-400 mb-0.5">Monthly Growth</div>
+          <div className="text-base sm:text-lg font-bold text-white mb-0.5">15%</div>
+          <div className="h-1 bg-blue-400 rounded-full w-10 mb-0.5"></div>
           <div className="flex items-center text-green-400">
-            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50 hover:border-blue-500/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/20">
-          <div className="text-[10px] sm:text-xs text-gray-400 mb-1">New Customers</div>
-          <div className="text-xl sm:text-2xl font-bold text-white mb-1">30K</div>
-          <div className="h-1 bg-blue-500 rounded-full w-14 mb-1"></div>
+        <div className="bg-gray-800/50 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 hover:border-blue-500/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/20">
+          <div className="text-[9px] sm:text-[10px] text-gray-400 mb-0.5">New Customers</div>
+          <div className="text-base sm:text-lg font-bold text-white mb-0.5">30K</div>
+          <div className="h-1 bg-blue-500 rounded-full w-11 mb-0.5"></div>
           <div className="flex items-center text-blue-400">
-            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50 hover:border-green-400/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-green-400/20">
-          <div className="text-[10px] sm:text-xs text-gray-400 mb-1">Conversion Rate</div>
-          <div className="text-xl sm:text-2xl font-bold text-white mb-1">12.5%</div>
-          <div className="h-1 bg-blue-400 rounded-full w-16 mb-1"></div>
+        <div className="bg-gray-800/50 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 hover:border-green-400/50 hover:bg-gray-800/70 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:shadow-lg hover:shadow-green-400/20">
+          <div className="text-[9px] sm:text-[10px] text-gray-400 mb-0.5">Conversion Rate</div>
+          <div className="text-base sm:text-lg font-bold text-white mb-0.5">12.5%</div>
+          <div className="h-1 bg-blue-400 rounded-full w-12 mb-0.5"></div>
           <div className="flex items-center text-green-400">
-            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </div>
@@ -101,11 +133,11 @@ const SalesDashboard: React.FC = () => {
       </div>
 
       {/* Middle Row - Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3 mb-2 sm:mb-3 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-1 min-h-0">
         {/* Revenue Trend Chart */}
-        <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 border border-cyan-500/30 flex flex-col min-h-0 hover:border-cyan-500/60 transition-all duration-300">
-          <h3 className="text-xs sm:text-sm font-medium mb-2 text-white">Revenue Trend & Forecast</h3>
-          <div className="flex-1 min-h-0">
+        <div className="bg-gray-800/30 rounded-lg p-1.5 sm:p-2 border border-cyan-500/30 flex flex-col min-h-0 hover:border-cyan-500/60 transition-all duration-300">
+          <h3 className="text-[9px] sm:text-[10px] font-medium mb-1 text-white flex-shrink-0">Revenue Trend & Forecast</h3>
+          <div className="flex-1 min-h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -148,23 +180,23 @@ const SalesDashboard: React.FC = () => {
         </div>
 
         {/* Global Sales Map */}
-        <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 border border-gray-700/50 flex flex-col min-h-0 hover:border-gray-600 transition-all duration-300">
-          <h3 className="text-xs sm:text-sm font-medium mb-2 text-white">Global Sales by Region</h3>
-          <div className="flex-1 min-h-0 relative">
+        <div className="bg-gray-800/30 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 flex flex-col min-h-0 hover:border-gray-600 transition-all duration-300">
+          <h3 className="text-[9px] sm:text-[10px] font-medium mb-1 text-white flex-shrink-0">Global Sales by Region</h3>
+          <div className="flex-1 min-h-[180px] relative">
             <GeoMapChart className="w-full h-full" />
           </div>
         </div>
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1.5 sm:gap-2 flex-1 min-h-0">
         {/* Top Performing Campaigns */}
-        <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 border border-gray-700/50 flex flex-col min-h-0 hover:border-green-500/50 transition-all duration-300">
-          <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h3 className="text-xs sm:text-sm font-medium text-white">Top Performing Campaigns</h3>
-            <span className="text-[10px] text-gray-400">Revenue</span>
+        <div className="bg-gray-800/30 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 flex flex-col min-h-0 hover:border-green-500/50 transition-all duration-300">
+          <div className="flex items-center justify-between mb-1 flex-shrink-0">
+            <h3 className="text-[9px] sm:text-[10px] font-medium text-white">Top Performing Campaigns</h3>
+            <span className="text-[8px] sm:text-[9px] text-gray-400">Revenue</span>
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={campaignsData} 
@@ -215,16 +247,16 @@ const SalesDashboard: React.FC = () => {
         </div>
 
         {/* AI-Powered Insights */}
-        <div className="bg-gray-800/30 rounded-lg p-2 sm:p-3 border border-gray-700/50 flex flex-col min-h-0">
-          <h3 className="text-xs sm:text-sm font-medium mb-2 text-white">AI-Powered Insights</h3>
-          <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-3">
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0"></div>
-              <p className="text-[10px] sm:text-xs text-gray-300">Identified Q3 revenue dip utue ad-spend saturation.</p>
+        <div className="bg-gray-800/30 rounded-lg p-1.5 sm:p-2 border border-gray-700/50 flex flex-col min-h-0">
+          <h3 className="text-[9px] sm:text-[10px] font-medium mb-1 text-white flex-shrink-0">AI-Powered Insights</h3>
+          <div className="flex-1 flex flex-col justify-center space-y-1.5 sm:space-y-2">
+            <div className="flex items-start gap-1.5">
+              <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-cyan-400 mt-1 flex-shrink-0"></div>
+              <p className="text-[9px] sm:text-[10px] text-gray-300">Identified Q3 revenue dip utue ad-spend saturation.</p>
             </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0"></div>
-              <p className="text-[10px] sm:text-xs text-gray-300">Forecast suggests 10% growth next quarter.</p>
+            <div className="flex items-start gap-1.5">
+              <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-cyan-400 mt-1 flex-shrink-0"></div>
+              <p className="text-[9px] sm:text-[10px] text-gray-300">Forecast suggests 10% growth next quarter.</p>
             </div>
           </div>
         </div>

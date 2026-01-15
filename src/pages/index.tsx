@@ -297,7 +297,7 @@ export default function Home() {
                   height={40}
                   className="h-10 w-auto"
                 />
-                <span className="text-white font-bold text-xl hidden sm:block">Untitled88</span>
+                <span className="text-white font-bold text-xl hidden sm:block font-poppins">Untitled88</span>
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-600/20 text-purple-400 border border-purple-500/30 hidden sm:block">
                   ✨ AI
                 </span>
@@ -485,15 +485,15 @@ export default function Home() {
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">🚀</span>
                   <div>
-                    <p className="font-semibold">Join the Beta Program</p>
-                    <p className="text-sm text-white/90">Get early access to AI-powered dashboards</p>
+                    <p className="font-semibold">Join the Waitlist</p>
+                    <p className="text-sm text-white/90">Be the first to know when we launch</p>
                   </div>
                 </div>
                 <Button
                   onClick={() => router.push('/beta')}
                   className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-6 py-2 rounded-full shadow-lg"
                 >
-                  Join Beta
+                  Join Waitlist
                 </Button>
               </div>
             </div>
@@ -505,11 +505,14 @@ export default function Home() {
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 relative z-10">
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight tracking-tight font-poppins">
               Type your ideas. Get your dashboards. It's that simple.
             </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              Untitled88 turns your data into AI-driven dashboards. Ask questions, generate visualizations, and explore insights - all in one smooth experience.
+            <h2 className="text-2xl md:text-3xl font-semibold text-purple-400 mb-6 leading-tight font-instrument-sans">
+              Type Your Questions. Get Your Dashboards.
+            </h2>
+            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed font-normal font-inter">
+              Untitled88 answers analytical questions and creates AI-driven dashboards from your data, all in one smooth experience.
             </p>
             
             {/* Example Prompts Pills */}
@@ -517,29 +520,25 @@ export default function Home() {
               <div className="flex flex-wrap gap-2 justify-center">
                 <button
                   onClick={() => handleExampleClick("Build a finance dashboard showing expenses vs budget by department.")}
-                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
                   📊 Summarize Q3 Revenue
                 </button>
                 <button
                   onClick={() => handleExampleClick("Show customer churn by subscription plan as a stacked bar chart.")}
-                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
                   📈 Build Sales Dashboard
                 </button>
                 <button
                   onClick={() => handleExampleClick("What are the main drivers of revenue growth this quarter?")}
-                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
                   🔍 Analyze Churn by Segment
                 </button>
                 <button
                   onClick={() => handleExampleClick("Explain the biggest drop in user engagement last month.")}
-                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="px-3 py-1.5 text-xs bg-gray-800/50 border border-gray-700 rounded-full hover:border-purple-500 hover:bg-gray-800 transition-all duration-200 text-gray-300 hover:text-purple-400 font-normal backdrop-blur-sm font-inter"
                 >
                   💡 Install Any Assests I'll Need
                 </button>
@@ -558,20 +557,18 @@ export default function Home() {
                   onBlur={handleInputBlur}
                   onKeyDown={handleKeyPress}
                   placeholder=""
-                  className="relative w-full min-h-[60px] max-h-[200px] p-4 pr-24 pb-14 border border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-white placeholder-gray-500 leading-relaxed bg-gray-900/80 backdrop-blur-sm shadow-2xl font-normal"
-                  style={{ 
-                    fontSize: '16px',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  className="relative w-full min-h-[60px] max-h-[200px] p-4 pr-24 pb-14 border border-gray-700 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-white placeholder-gray-500 leading-relaxed bg-gray-900/80 backdrop-blur-sm shadow-2xl font-normal font-inter"
+                  style={{
+                    fontSize: '16px'
                   }}
                 />
                 
                 {/* Dynamic typing animation overlay */}
                 {!isUserFocused && !prompt && displayText && (
-                  <div 
-                    className="absolute top-4 left-4 pointer-events-none text-gray-400 leading-relaxed z-10 font-normal"
-                    style={{ 
-                      fontSize: '16px',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                  <div
+                    className="absolute top-4 left-4 pointer-events-none text-gray-400 leading-relaxed z-10 font-normal font-inter"
+                    style={{
+                      fontSize: '16px'
                     }}
                   >
                     {displayText}
@@ -583,8 +580,7 @@ export default function Home() {
                 <Button
                   onClick={handlePromptSubmit}
                   disabled={!!session && !prompt.trim()}
-                  className="absolute right-3 bottom-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center text-sm font-medium shadow-lg shadow-purple-500/50"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="absolute right-3 bottom-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center text-sm font-medium shadow-lg shadow-purple-500/50 font-instrument-sans"
                 >
                   ⚡ {session ? 'Generate' : 'Create'}
                 </Button>
@@ -601,17 +597,17 @@ export default function Home() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-400 mb-12 font-normal text-center" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              Press <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs font-mono text-gray-300">⌘ Enter</kbd> or <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs font-mono text-gray-300">Ctrl Enter</kbd> to generate
+            <p className="text-sm text-gray-400 mb-12 font-normal text-center font-inter">
+              Press <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs font-fragment-mono text-gray-300">⌘ Enter</kbd> or <kbd className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs font-fragment-mono text-gray-300">Ctrl Enter</kbd> to generate
             </p>
           </div>
 
           {/* Interactive Dashboards Section */}
           <div className="max-w-[95vw] xl:max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-8 mb-12 sm:mb-20 relative z-10">
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 text-center px-2" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 text-center px-2 font-poppins">
               Key Features
             </h2>
-            <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 lg:mb-8 text-center max-w-2xl mx-auto px-2">
+            <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6 lg:mb-8 text-center max-w-2xl mx-auto px-2 font-inter">
               Powerful analytics and insights at your fingertips
             </p>
             <div className="space-y-4 sm:space-y-6 lg:space-y-8">
@@ -630,40 +626,38 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
               <div className="text-center md:text-left">
-                <p className="text-gray-300 text-sm font-medium">Ask. Visualize. Understand.</p>
+                <p className="text-gray-300 text-sm font-medium font-inter">Ask. Visualize. Understand.</p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-gray-300 text-sm font-medium">From data to dashboards - in seconds.</p>
+                <p className="text-gray-300 text-sm font-medium font-inter">From data to dashboards - in seconds.</p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-gray-300 text-sm font-medium">Turn questions into insights, instantly.</p>
+                <p className="text-gray-300 text-sm font-medium font-inter">Turn questions into insights, instantly.</p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-gray-300 text-sm font-medium">Chat with your data. See the answers.</p>
+                <p className="text-gray-300 text-sm font-medium font-inter">Chat with your data. See the answers.</p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-gray-300 text-sm font-medium">Your data. Your dashboards. Powered by AI.</p>
+                <p className="text-gray-300 text-sm font-medium font-inter">Your data. Your dashboards. Powered by AI.</p>
               </div>
             </div>
             <div className="text-center text-gray-500 text-sm border-t border-gray-800 pt-8">
-              <p className="font-normal mb-3" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>&copy; 2025 {AppConfig.site_name}. All rights reserved.</p>
+              <p className="font-normal mb-3 font-inter">&copy; 2025 {AppConfig.site_name}. All rights reserved.</p>
               <div className="flex items-center justify-center gap-6">
-                <a 
-                  href="/privacy-policy" 
-                  target="_blank" 
+                <a
+                  href="/privacy-policy"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-purple-400 transition-colors font-normal"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="text-gray-400 hover:text-purple-400 transition-colors font-normal font-inter"
                 >
                   Privacy Policy
                 </a>
                 <span className="text-gray-700">•</span>
-                <a 
-                  href="/terms" 
-                  target="_blank" 
+                <a
+                  href="/terms"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-purple-400 transition-colors font-normal"
-                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
+                  className="text-gray-400 hover:text-purple-400 transition-colors font-normal font-inter"
                 >
                   Terms of Service
                 </a>

@@ -17,6 +17,13 @@ module.exports = {
     extend: {
       fontFamily: {
         'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'inter': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'instrument-sans': ['Instrument Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'poppins': ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'figtree': ['Figtree', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'montagu-slab': ['Montagu Slab', 'ui-serif', 'Georgia', 'serif'],
+        'fragment-mono': ['Fragment Mono', 'ui-monospace', 'Menlo', 'monospace'],
+        'urbanist': ['Urbanist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       colors: {
         primary: {

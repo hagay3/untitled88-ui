@@ -45,8 +45,8 @@ export default function BetaPage() {
                 height={40}
                 className="h-10 w-auto"
               />
-              <span className="text-white font-bold text-xl hidden sm:block">Untitled88</span>
-              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-600/20 text-purple-400 border border-purple-500/30 hidden sm:block">
+              <span className="text-white font-bold text-xl hidden sm:block font-poppins">Untitled88</span>
+              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-600/20 text-purple-400 border border-purple-500/30 hidden sm:block font-inter">
                 ✨ AI
               </span>
             </Link>
@@ -59,13 +59,13 @@ export default function BetaPage() {
         <div className="w-full max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight tracking-tight font-poppins">
               Join the Beta Program
             </h1>
-            
-            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-              Get early access to the future of AI-powered dashboards. 
-              Fill out the form below to request your beta invitation.
+
+            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal font-inter">
+              Untitled88 answers analytical questions and creates AI-driven dashboards from your data, all in one smooth experience.
+              Join the waitlist to be notified when we launch.
             </p>
           </div>
 
@@ -80,8 +80,8 @@ export default function BetaPage() {
           {/* Footer */}
           <div className="text-center">
             <div className="flex justify-center space-x-6 text-xs text-gray-400">
-              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">Privacy Policy</Link>
-              <Link href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">Terms of Service</Link>
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors font-inter">Privacy Policy</Link>
+              <Link href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors font-inter">Terms of Service</Link>
             </div>
           </div>
         </div>
